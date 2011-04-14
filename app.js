@@ -16,6 +16,8 @@ var iniparser = require('iniparser');
 var fs = require('fs');
 var sys = require('sys');
 var path = require('path');
+var chaingang = require('chain-gang');
+var exec = require('child_process').exec;
 
 
 
@@ -30,6 +32,8 @@ exports.main = main;
 //---- globals
 
 var config = null;
+var db;  // see "Database" below
+var chain = chaingang.create({workers: 3})
 
 
 
@@ -60,30 +64,160 @@ function createApp(opts, config) {
 
 
   //-- Routes.
-
   app.get('/', function(req, res) {
+    //TODO
+    jsonResponse(res, db.reposFromName);
+  });
+
+  app.get('/api', function(req, res) {
     var accept = req.header("Accept");
     if (accept && (accept.search("application/xhtml+xml") != -1
                    || accept.search("text/html") != -1)) {
-      // TODO: interpolate "ip_address" and "port" values into this doc.
+      // TODO: interpolate "host" and "port" values into this doc.
       res.sendfile(__dirname + "/docs/api.html");
     } else {
       res.header("Content-Type", "application/json")
       res.sendfile(__dirname + "/docs/api.json");
     }
   });
+  
+  app.post('/api/push', requestBodyMiddleware, function(req, res) {
+    try {
+      var data = JSON.parse(req.body);
+    } catch(ex) {
+      jsonResponse(res, {"success": false, "error": "invalid JSON: "+ex}, 400);
+      return;
+    }
+    
+    //TODO: validate data
+    warn(data);
+    db.fetchRepo(data.repository.name);
+
+    jsonResponse(res, {"success": true}, 200);
+  });
 
   return app;
 }
 
 
+//---- Database
+
+db = (function() {
+
+  /**
+   * Repository object for each repo in the hub.
+   * @argument {String} name is the repository name (and base dir).
+   *
+   * @param {String} dir is the repository clone directory.
+   * @param {Boolean} cloned says whether this repo has been fully cloned yet.
+   */
+  function Repository(name) {
+    this.name = name;
+    this.dir = path.join(config.reposDir, name);
+    this.cloned = path.existsSync(this.dir);
+  }
+
+  return {
+    repoFromName: null,
+    activeTasksFromRepoName: {},
+    pendingTasksFromRepoName: {},
+
+    load: function load() {
+      var reposJson = path.join(config.dataDir, "repos.json");
+      if (! path.existsSync(reposJson)) {
+        this.repoFromName = {};
+        this.save();
+      } else {
+        var data, content;
+        try {
+          content = fs.readFileSync(reposJson);
+        } catch(ex) {
+          throw("error loading db: "+ex)
+        }
+        try {
+          var data = JSON.parse(content);
+        } catch(ex) {
+          throw("bogus 'repos.json' content: "+ex);
+        }
+        this.repoFromName = {};
+        for (var i=0; i < data.length; i++) {
+          if (! (data[i] in this.repoFromName)) {  // skip dupes
+            this.repoFromName[data[i]] = new Repository(data[i]);
+          }
+        }
+      }
+    },
+
+    save: function save() {
+      var reposJson = path.join(config.dataDir, "repos.json");
+      fs.writeFileSync(reposJson,
+        JSON.stringify(Object.keys(this.repoFromName), null, 2) + '\n');
+    },
+    
+    fetchRepo: function fetchRepo(name) {
+      // START HERE with handling initial clone sequencing, s/repo/name
+      //TODO: how to delay queuing of tasks for repo 'foo' if the *clone* is
+      //  currently being done for 'foo'? 'waitingTasksFromRepo'
+      if (!(name in this.activeTasksFromRepoName)) {
+        this.activeTasksFromRepoName[name] = [true];
+      } else {
+        this.activeTasksFromRepoName[name].push(true);
+      }
+      var this_ = this;
+      chain.add(fetchRepoTask(name), null, function(err) {
+        warn("Finished fetch of repository '"+name+"'.");
+        this_.activeTasksFromRepoName[name].pop();
+      });
+    }
+  };
+})();
+
 
 
 //---- internal support functions
 
-function validateManifest(manifest) {
-  // If valid, returns null, else returns list of validation failures.
-  //TODO
+function fetchRepoTask(worker) {
+  return function(worker) {
+    //var err;
+    //try {
+    //  // do some work
+    //} catch(e) {
+    //  err = e;
+    //}
+    //worker.finish(err);
+    var cmd = 'shasum /Users/trentm/joy/usb-headnode2/cache/nodejs-1.1.1.zfs.bz2';  //XXX example long one
+    cmd = 'echo hi';
+    exec(cmd, function(error,  stdout, stderr) {
+      warn('--')
+      warn(stdout);
+      warn('--')
+      worker.finish();
+    });
+  }
+}
+
+//XXX
+//function lsTask(dir) {
+//  var exec = require('child_process').exec;
+//  return function(worker) {
+//    exec('ls '+dir, function(error,  stdout, stderr) {
+//      warn('--')
+//      warn(stdout);
+//      warn('--')
+//      worker.finish();
+//    });
+//  };
+//}
+
+// Connect middleware.
+function requestBodyMiddleware(req, res, next) {
+  var data = '';
+  req.setEncoding('utf8');
+  req.on('data', function(chunk) { data += chunk; });
+  req.on('end', function(){
+    req.body = data;
+    next();
+  });
 }
 
 function jsonResponse(res, data, status) {
@@ -186,6 +320,26 @@ function absPath(p, relativeTo) {
   return p;
 }
 
+function createDataArea(config) {
+  if (!config.dataDir) {
+    throw("no 'dataDir' config variable");
+  }
+  config.dataDir = absPath(config.dataDir);
+  console.log("Setup data dir, '"+config.dataDir+"'.")
+  if (! path.existsSync(config.dataDir)) {
+    throw("configured dataDir, '"+config.dataDir+"' does not exist");
+  }
+  config.reposDir = path.join(config.dataDir, "repos");
+  if (! path.existsSync(config.reposDir)) {
+    fs.mkdirSync(config.reposDir, 0755);
+  }
+  config.tmpDir = path.join(config.dataDir, "tmp");
+  if (path.existsSync(config.tmpDir)) {
+    fs.rmdirSync(config.tmpDir);
+  }
+  fs.mkdirSync(config.tmpDir, 0755);
+}
+
 
 
 //---- mainline
@@ -224,8 +378,15 @@ function internalMainline(argv) {
   }
   //warn(config)
 
+  // Setup
+  dataDir = createDataArea(config);
+  db.load();
+  Object.keys(db.repoFromName).forEach(function(name) {
+    db.fetchRepo(name);
+  });
+
   var app = createApp(opts, config);
-  app.listen(config.port, config.ip_address);
+  app.listen(config.port, config.host);
   if (! opts.quiet) {
     console.log('Hub listening on <http://' + app.address().address
       + ':' + app.address().port + '/> (' + app.set('env') + ' mode).');
