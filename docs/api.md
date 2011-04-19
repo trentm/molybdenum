@@ -48,7 +48,7 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
         "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
         "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
         "ref": "refs/heads/master"
-    }' | curl {{ url }}/repo/push -X POST -d @-
+    }' | curl {{ url }}/api/push -X POST -d @-
 
 Note: This is pretty close to what you can use for a post-receive in your git
 repo's ".git/hooks" dir.
@@ -70,6 +70,46 @@ repo's ".git/hooks" dir.
     {
       "success": true,
       "error": "some description of the error"
+    }
+
+
+## GET /repos
+
+Return info on all current repositories in the hub.
+
+#### example request
+
+    $ curl {{ url }}/api/repos
+
+#### example response
+
+    [
+      {
+        "name": "foo",
+        "dir": "/Users/trentm/tm/hub/data/repos/foo",
+        "isCloned": true,
+        "isFetchPending": false,
+        "numActiveFetches": 0
+      }
+    ]
+
+
+## GET /repos/:name
+
+Return info on all current repositories in the hub.
+
+#### example request
+
+    $ curl {{ url }}/api/repos/foo
+
+#### example response
+
+    {
+      "name": "foo",
+      "dir": "/Users/trentm/tm/hub/data/repos/foo",
+      "isCloned": true,
+      "isFetchPending": false,
+      "numActiveFetches": 0
     }
 
 

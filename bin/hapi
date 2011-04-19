@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# Copyright (c) 2011 Trent Mick.
+#
+# Convenience wrapper for calling Hub API.
+#
+
+#export PS4='${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+#set -o xtrace
+set -o errexit
+set -o pipefail
+
+
+# Arguments.
+verbose=0
+if [ "$1" == "-v" ]; then
+    shift
+    verbose=1
+fi
+path=$1
+if [[ -z "$path" ]]; then
+    echo "error: no PATH argument given"
+    echo "Usage: hapi [-v] PATH [EXTRA-CURL-ARGS]"
+    exit 1
+fi
+shift;
+
+#XXX hard code for now
+HUB_URL=http://0.0.0.0:3333/api
+
+# Get config/environment data.
+if [[ -z "$HUB_URL" ]]; then
+    echo "error: could not determine Hub URL, set 'HUB_URL' envvar"
+    exit 1
+fi
+JSON=$(which json 2>/dev/null || true)
+
+
+# Note: the 'echo' doesn't show the real quoting of args.
+[ "$verbose" == "1" ] && echo "# curl -sS --url $HUB_URL$path $@" >&2
+if [[ ! -x "$JSON" ]]; then
+    curl -sS --url "$HUB_URL$path" "$@"
+    echo ""
+else
+    curl -sS --url "$HUB_URL$path" "$@" | json -q
+fi

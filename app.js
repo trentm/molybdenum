@@ -16,9 +16,9 @@ var iniparser = require('iniparser');
 var fs = require('fs');
 var sys = require('sys');
 var path = require('path');
+var child_process = require('child_process');
 var chaingang = require('chain-gang');
-var exec = require('child_process').exec;
-
+var _ = require('underscore');
 
 
 //--- exports for module usage
@@ -65,9 +65,15 @@ function createApp(opts, config) {
 
   //-- Routes.
   app.get('/', function(req, res) {
-    //TODO
-    jsonResponse(res, db.reposFromName);
+    res.end("hi there, checkout /api");
   });
+  app.get('/api/repos', function(req, res) {
+    jsonResponse(res, _.values(db.repoFromName));
+  });
+  //TODO
+  //app.get('/api/repos/:name', function(req, res) {
+  //  jsonResponse(res, _.values(db.repoFromName));
+  //});
 
   app.get('/api', function(req, res) {
     var accept = req.header("Accept");
@@ -91,7 +97,9 @@ function createApp(opts, config) {
     
     //TODO: validate data
     warn(data);
-    db.fetchRepo(data.repository.name);
+    var repo = db.repoFromName[data.repository.name]
+      || db.addRepo(data.repository.name, data.repository.url);
+    repo.fetch();
 
     jsonResponse(res, {"success": true}, 200);
   });
@@ -111,16 +119,44 @@ db = (function() {
    * @param {String} dir is the repository clone directory.
    * @param {Boolean} cloned says whether this repo has been fully cloned yet.
    */
-  function Repository(name) {
+  function Repository(name, url) {
     this.name = name;
-    this.dir = path.join(config.reposDir, name);
-    this.cloned = path.existsSync(this.dir);
+    this.url = url;
+    this.dir = path.join(config.reposDir, name + ".git");
+    this.isCloned = path.existsSync(this.dir);
+    this.isFetchPending = false;
+    this.numActiveFetches = 0;
+  }
+
+  Repository.prototype.clone = function clone() {
+    var this_ = this;
+    chain.add(cloneRepoTask(this_), "clone:"+this.name, function(err) {
+      warn("Finished clone of repository '"+this_.name+"'.");
+      if (this_.isFetchPending) {
+        this_.fetch();
+      }
+    });
+  }
+
+  Repository.prototype.fetch = function fetch() {
+    if (! this.isCloned) {
+      // Wait until clone is complete before fetching.
+      this.isFetchPending = true;
+    } else {
+      this.isFetchPending = false;
+      this.numActiveFetches += 1;
+      var this_ = this;
+      chain.add(fetchRepoTask(this), null, function(err) {
+        warn("Finished fetch of repository '"+this_.name+"'.");
+        this_.numActiveFetches -= 1;
+      });
+    }
   }
 
   return {
     repoFromName: null,
-    activeTasksFromRepoName: {},
-    pendingTasksFromRepoName: {},
+    activeFetchesFromRepoName: {},
+    pendingFetchFromRepoName: {},
 
     load: function load() {
       var reposJson = path.join(config.dataDir, "repos.json");
@@ -128,7 +164,7 @@ db = (function() {
         this.repoFromName = {};
         this.save();
       } else {
-        var data, content;
+        var data, content, name, url;
         try {
           content = fs.readFileSync(reposJson);
         } catch(ex) {
@@ -141,33 +177,33 @@ db = (function() {
         }
         this.repoFromName = {};
         for (var i=0; i < data.length; i++) {
-          if (! (data[i] in this.repoFromName)) {  // skip dupes
-            this.repoFromName[data[i]] = new Repository(data[i]);
+          name = data[i].name;
+          url = data[i].url;
+          if (! (name in this.repoFromName)) {  // skip dupes
+            this.addRepo(name, url);
           }
         }
       }
     },
-
+    
     save: function save() {
       var reposJson = path.join(config.dataDir, "repos.json");
+      var repos = _.map(this.repoFromName,
+        function(r) { return {name: r.name, url: r.url} });
       fs.writeFileSync(reposJson,
-        JSON.stringify(Object.keys(this.repoFromName), null, 2) + '\n');
+        JSON.stringify(repos, null, 2) + '\n');
     },
     
-    fetchRepo: function fetchRepo(name) {
-      // START HERE with handling initial clone sequencing, s/repo/name
-      //TODO: how to delay queuing of tasks for repo 'foo' if the *clone* is
-      //  currently being done for 'foo'? 'waitingTasksFromRepo'
-      if (!(name in this.activeTasksFromRepoName)) {
-        this.activeTasksFromRepoName[name] = [true];
+    addRepo: function addRepo(name, url) {
+      var repo = this.repoFromName[name] = new Repository(name, url);
+      this.activeFetchesFromRepoName[name] = [];
+      this.pendingFetchFromRepoName[name] = false;
+      if (! repo.isCloned) {
+        repo.clone();
       } else {
-        this.activeTasksFromRepoName[name].push(true);
+        repo.fetch();
       }
-      var this_ = this;
-      chain.add(fetchRepoTask(name), null, function(err) {
-        warn("Finished fetch of repository '"+name+"'.");
-        this_.activeTasksFromRepoName[name].pop();
-      });
+      return repo;
     }
   };
 })();
@@ -176,38 +212,43 @@ db = (function() {
 
 //---- internal support functions
 
-function fetchRepoTask(worker) {
+function fetchRepoTask(repo) {
   return function(worker) {
-    //var err;
-    //try {
-    //  // do some work
-    //} catch(e) {
-    //  err = e;
-    //}
-    //worker.finish(err);
-    var cmd = 'shasum /Users/trentm/joy/usb-headnode2/cache/nodejs-1.1.1.zfs.bz2';  //XXX example long one
-    cmd = 'echo hi';
-    exec(cmd, function(error,  stdout, stderr) {
-      warn('--')
-      warn(stdout);
-      warn('--')
+    //TODO: Better tmpDir naming for uniqueness.
+    gitExec(["fetch", "origin"], repo.dir, function(err, stdout, stderr) {
+      if (err) {
+        //TODO: include 'data' in error.
+        warn("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);
+      }
       worker.finish();
     });
   }
 }
 
-//XXX
-//function lsTask(dir) {
-//  var exec = require('child_process').exec;
-//  return function(worker) {
-//    exec('ls '+dir, function(error,  stdout, stderr) {
-//      warn('--')
-//      warn(stdout);
-//      warn('--')
-//      worker.finish();
-//    });
-//  };
-//}
+function cloneRepoTask(repo) {
+  return function(worker) {
+    //TODO: Better tmpDir naming for uniqueness.
+    var tmpDir = path.join(config.tmpDir, repo.name+"."+process.pid)
+    gitExec(["clone", "--bare", repo.url, tmpDir], null, function(err, stdout, stderr) {
+      if (err) {
+        //TODO: include 'data' in error.
+        warn("error: Error cloning repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err);
+        if (path.existsSync(tmpDir)) {
+          fs.rmdirSync(tmpDir)
+        }
+      } else {
+        try {
+          fs.renameSync(tmpDir, repo.dir);
+          repo.isCloned = true;
+        } catch(ex) {
+          warn("error: Error moving repository '"+repo.name+"' clone from '"+
+            tmpDir+"' to '"+repo.dir+"'.");
+        }
+      }
+      worker.finish();
+    });
+  }
+}
 
 // Connect middleware.
 function requestBodyMiddleware(req, res, next) {
@@ -219,6 +260,41 @@ function requestBodyMiddleware(req, res, next) {
     next();
   });
 }
+
+
+// Based on git-fs' `gitExec`.
+//TODO: allow 'gitDir' to be left out if null.
+var gitENOENT = /fatal: (Path '([^']+)' does not exist in '([0-9a-f]{40})'|ambiguous argument '([^']+)': unknown revision or path not in the working tree.)/;
+function gitExec(args, gitDir, callback) {
+  var fullArgs = [];
+  if (gitDir) {
+    fullArgs = fullArgs.concat(["--git-dir=" + gitDir]);
+  }
+  fullArgs = fullArgs.concat(args);
+  var child = child_process.spawn("git", fullArgs);
+  var stdout = [], stderr = [];
+  child.stdout.setEncoding('binary');
+  child.stdout.addListener('data', function (text) {
+    stdout[stdout.length] = text;
+  });
+  child.stderr.addListener('data', function (text) {
+    stderr[stderr.length] = text;
+  });
+  child.addListener('exit', function (code) {
+    if (code > 0) {
+      var err = new Error("git " + fullArgs.join(" ") + "\n" + stderr.join(''));
+      if (gitENOENT.test(err.message)) {
+        err.errno = process.ENOENT;
+      }
+      callback(null, stdout.join(''), stderr.join(''));
+      return;
+    }
+    callback(null, stdout.join(''), stderr.join(''));
+  });
+  child.stdin.end();
+}
+
+
 
 function jsonResponse(res, data, status) {
   if (status === undefined) {
@@ -381,9 +457,6 @@ function internalMainline(argv) {
   // Setup
   dataDir = createDataArea(config);
   db.load();
-  Object.keys(db.repoFromName).forEach(function(name) {
-    db.fetchRepo(name);
-  });
 
   var app = createApp(opts, config);
   app.listen(config.port, config.host);
