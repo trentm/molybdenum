@@ -2,7 +2,7 @@
   "endpoints": [
     "POST /push", 
     "GET /repos", 
-    "GET /repos/:name", 
+    "GET /repos/:repo", 
     "GET /"
   ], 
   "version": "1.0.0"

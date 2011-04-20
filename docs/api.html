@@ -17,7 +17,7 @@
   <ul>
     <li><a href="#POST-/push"><span class="verb">POST</span> <span>/push</span></a></li>
     <li><a href="#GET-/repos"><span class="verb">GET</span> <span>/repos</span></a></li>
-    <li><a href="#GET-/repos/:name"><span class="verb">GET</span> <span>/repos/:name</span></a></li>
+    <li><a href="#GET-/repos/:repo"><span class="verb">GET</span> <span>/repos/:repo</span></a></li>
   </ul></li>
   <li><a href="#general">General</a>
   <ul>
@@ -43,6 +43,12 @@
 <p>All responses are <strong>JSON</strong> (that is, except for the current HTML docs that
 you are reading).</p>
 
+<!--
+    GET /api/repos/:repo
+    GET /api/repos/:repo/tree/:branch/:path
+    GET /api/repos/:repo/blob/:branch/:path
+-->
+
 
 </div>
 <h1 id="repositories">Repositories</h1>
@@ -64,13 +70,15 @@ hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://hel
 }
 </code></pre>
 
+<p>TODO: or should this be /repos/:repo/push. Or even just POST/PUT to /repos/:repo.</p>
+
 <h4>example request</h4>
 
 <pre class="shell"><code>echo '{
     "repository": {
         "url": "git@code.example.com:cool-product.git",
         "name": "cool-product"
-    }
+    },
     "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
     "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
     "ref": "refs/heads/master"
@@ -112,34 +120,55 @@ Status: 400
 
 <h4>example response</h4>
 
-<pre><code>[
-  {
-    "name": "foo",
-    "dir": "/Users/trentm/tm/hub/data/repos/foo",
-    "isCloned": true,
-    "isFetchPending": false,
-    "numActiveFetches": 0
-  }
-]
+<pre><code>{
+  "repositories": [
+    {
+      "name": "eol",
+      "url": "https://github.com/trentm/eol.git",
+      "dir": "/data/hub/repos/eol.git",
+      // Note: The following are internal. Will probably removed.
+      "isCloned": true,
+      "isFetchPending": false,
+      "numActiveFetches": 0
+    }
+  ]
+}
 </code></pre>
 
-<h2 id="GET-/repos/:name"><span>GET /repos/:name</span></h2>
+<h2 id="GET-/repos/:repo"><span>GET /repos/:repo</span></h2>
 
 <p>Return info on all current repositories in the hub.</p>
 
 <h4>example request</h4>
 
-<pre class="shell"><code>curl {{ url }}/api/repos/foo
+<pre class="shell"><code>curl {{ url }}/api/repos/eol
 </code></pre>
 
 <h4>example response</h4>
 
 <pre><code>{
-  "name": "foo",
-  "dir": "/Users/trentm/tm/hub/data/repos/foo",
-  "isCloned": true,
-  "isFetchPending": false,
-  "numActiveFetches": 0
+  "repository": {
+    "name": "eol",
+    "url": "https://github.com/trentm/eol.git",
+    "dir": "/data/hub/repos/eol.git",
+    // Note: The following are internal. Will probably removed.
+    "isCloned": true,
+    "isFetchPending": false,
+    "numActiveFetches": 0
+  }
+}
+</code></pre>
+
+<h4>failure response</h4>
+
+<pre><code>...
+Status: 404
+
+{
+  "error": {
+    "message": "no such repo: 'asdf'",
+    "code": 404
+  }
 }
 </code></pre>
 
