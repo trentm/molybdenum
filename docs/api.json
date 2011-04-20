@@ -1,0 +1,9 @@
+{
+  "endpoints": [
+    "POST /push", 
+    "GET /repos", 
+    "GET /repos/:name", 
+    "GET /"
+  ], 
+  "version": "1.0.0"
+}

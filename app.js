@@ -67,6 +67,18 @@ function createApp(opts, config) {
   app.get('/', function(req, res) {
     res.end("hi there, checkout /api");
   });
+  
+  app.get('/api', function(req, res) {
+    var accept = req.header("Accept");
+    if (accept && (accept.search("application/xhtml+xml") != -1
+                   || accept.search("text/html") != -1)) {
+      // TODO: interpolate "ip_address" and "port" values into this doc.
+      res.sendfile(__dirname + "/docs/api.html");
+    } else {
+      res.header("Content-Type", "application/json")
+      res.sendfile(__dirname + "/docs/api.json");
+    }
+  });
   app.get('/api/repos', function(req, res) {
     jsonResponse(res, _.values(db.repoFromName));
   });

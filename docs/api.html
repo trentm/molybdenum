@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hub API</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="media/css/restdown.css">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+</head>
+<body>
+<div id="header">
+    <h1>Hub API Documentation</h1>
+</div>
+
+    <div id="sidebar">
+<ul>
+  <li><a href="#repositories">Repositories</a>
+  <ul>
+    <li><a href="#POST-/push"><span class="verb">POST</span> <span>/push</span></a></li>
+    <li><a href="#GET-/repos"><span class="verb">GET</span> <span>/repos</span></a></li>
+    <li><a href="#GET-/repos/:name"><span class="verb">GET</span> <span>/repos/:name</span></a></li>
+  </ul></li>
+  <li><a href="#general">General</a>
+  <ul>
+    <li><a href="#GET-/"><span class="verb">GET</span> <span>/</span></a></li>
+  </ul></li>
+</ul>
+
+    </div>
+    <div id="content">
+
+<h1>Hub API</h1>
+<div class="intro">
+
+
+<h3>All API calls start with</h3>
+
+<pre class="base">
+{{ url }}/api
+</pre>
+
+<h3>Format</h3>
+
+<p>All responses are <strong>JSON</strong> (that is, except for the current HTML docs that
+you are reading).</p>
+
+
+</div>
+<h1 id="repositories">Repositories</h1>
+
+<h2 id="POST-/push"><span>POST /push</span></h2>
+
+<p>Let the hub know about a new push to a repo. The request body must be a JSON
+object of the following form (compatible with the Github URL post-receive
+hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://help.github.com/post-receive-hooks/</a>):</p>
+
+<pre><code>{
+  "repository": {
+    "url": $git_clone_url,
+    "name": $name
+  }
+  "before": $before_sha,
+  "after": $after_sha,
+  "ref": $ref
+}
+</code></pre>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>echo '{
+    "repository": {
+        "url": "git@code.example.com:cool-product.git",
+        "name": "cool-product"
+    }
+    "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
+    "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
+    "ref": "refs/heads/master"
+}' | curl {{ url }}/api/push -X POST -d @-
+</code></pre>
+
+<p>Note: This is pretty close to what you can use for a post-receive in your git
+repo's ".git/hooks" dir.</p>
+
+<h4>successful response</h4>
+
+<pre><code>...
+Status: 200
+
+{
+  "success": true
+}
+</code></pre>
+
+<h4>error response</h4>
+
+<pre><code>...
+Status: 400
+
+{
+  "success": true,
+  "error": "some description of the error"
+}
+</code></pre>
+
+<h2 id="GET-/repos"><span>GET /repos</span></h2>
+
+<p>Return info on all current repositories in the hub.</p>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>curl {{ url }}/api/repos
+</code></pre>
+
+<h4>example response</h4>
+
+<pre><code>[
+  {
+    "name": "foo",
+    "dir": "/Users/trentm/tm/hub/data/repos/foo",
+    "isCloned": true,
+    "isFetchPending": false,
+    "numActiveFetches": 0
+  }
+]
+</code></pre>
+
+<h2 id="GET-/repos/:name"><span>GET /repos/:name</span></h2>
+
+<p>Return info on all current repositories in the hub.</p>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>curl {{ url }}/api/repos/foo
+</code></pre>
+
+<h4>example response</h4>
+
+<pre><code>{
+  "name": "foo",
+  "dir": "/Users/trentm/tm/hub/data/repos/foo",
+  "isCloned": true,
+  "isFetchPending": false,
+  "numActiveFetches": 0
+}
+</code></pre>
+
+<h1 id="general">General</h1>
+
+<h2 id="GET-/"><span>GET /</span></h2>
+
+<p>Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.</p>
+
+<h4>example JSON response</h4>
+
+<pre><code>{
+  "endpoints": [
+    "POST   /api/push"
+  ], 
+  "version": "1.0.0"
+}
+</code></pre>
+
+    </div>
+<script type="text/javascript" charset="utf-8">
+$(function() {
+    var headerHeight = $("#header").height();
+    var offsets = [];
+    var current = -1;
+
+    function endpoint(scrollDistance) {
+        if (scrollDistance < offsets[0]) {
+            return -1;
+        } else {
+            for (var id = offsets.length; id > 0; id--) {
+                if (scrollDistance > offsets[id - 1]) {
+                    return id - 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    $("h2").each(function(i) {
+        offsets.push($(this).offset().top - headerHeight)
+    });
+
+    $("#content").append('<h2 class="fixed" style="display: none"><span>&nbsp;</span></h2>');
+    var fixed_h2 = $("h2.fixed");
+    var fixed_span = $("h2.fixed span");
+
+    $("#content").scroll(function() {
+        var scrollDistance = $("#content").attr('scrollTop');
+        var now = endpoint(scrollDistance);
+
+        if (now !== current) {
+            $("#sidebar li").removeClass("current");
+            current = now;
+            if (current < 0) {
+                fixed_h2.hide();
+            } else if (current >= 0) {
+                var heading = $($("h2 span")[current]).text();
+                $("#sidebar a[href|=#" + heading.replace(' ', '-') + "]").parent().addClass("current");
+                fixed_span.text(heading);
+                fixed_h2.show();
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
