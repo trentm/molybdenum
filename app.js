@@ -29,11 +29,16 @@ exports.main = main;
 
 
 
-//---- globals
+//---- globals && config
 
 var config = null;
 var db;  // see "Database" below
 var chain = chaingang.create({workers: 3})
+
+// Mustache-like templating.
+_.templateSettings = {
+  interpolate : /\{\{(.+?)\}\}/g
+};
 
 
 
@@ -65,40 +70,93 @@ function createApp(opts, config) {
 
   //-- Routes.
   app.get('/', function(req, res) {
-    res.end("hi there, checkout /api");
+    res.header("Content-Type", "text/html");
+    res.end("Hi there, checkout <a href='/api'>the API</a> for now.");
   });
   
   app.get('/api', function(req, res) {
     var accept = req.header("Accept");
     if (accept && (accept.search("application/xhtml+xml") != -1
                    || accept.search("text/html") != -1)) {
-      // TODO: interpolate "ip_address" and "port" values into this doc.
-      res.sendfile(__dirname + "/docs/api.html");
+      fs.readFile(__dirname + "/docs/api.html", "utf-8", function(err, content) {
+        //TODO:XXX error handling
+        //TODO: cache the template!
+        var template = _.template(content);
+        res.header("Content-Type", "text/html");
+        //TODO: provide a config var for the public url
+        res.end(template({url: "http://"+config.host+":"+config.port}));
+      });
     } else {
       res.header("Content-Type", "application/json")
       res.sendfile(__dirname + "/docs/api.json");
     }
   });
-  app.get('/api/repos', function(req, res) {
-    jsonResponse(res, _.values(db.repoFromName));
-  });
-  //TODO
-  //app.get('/api/repos/:name', function(req, res) {
-  //  jsonResponse(res, _.values(db.repoFromName));
-  //});
 
-  app.get('/api', function(req, res) {
-    var accept = req.header("Accept");
-    if (accept && (accept.search("application/xhtml+xml") != -1
-                   || accept.search("text/html") != -1)) {
-      // TODO: interpolate "host" and "port" values into this doc.
-      res.sendfile(__dirname + "/docs/api.html");
+  app.get('/api/repos', function(req, res) {
+    jsonResponse(res, {repositories: _.values(db.repoFromName)});
+  });
+  app.get('/api/repos/:repo', function(req, res) {
+    var repo = db.repoFromName[req.params.repo];
+    if (repo === undefined) {
+      jsonResponse(res, {
+        error: {
+          message: "no such repo: '"+req.params.repo+"'",
+          code: 404
+        }
+      }, 404);
     } else {
-      res.header("Content-Type", "application/json")
-      res.sendfile(__dirname + "/docs/api.json");
+      jsonResponse(res, {repository: repo});
+    }
+  });
+
+  // GET /api/repos/:repo/tree/:ref/:path
+  app.get(/^\/api\/repos\/([^\/]+)\/tree\/([^\/]+)\/(.+)\/?/, function(req, res) {
+    var name = req.params[0];
+    var ref = req.params[1];
+    var path = req.params[2];
+    var repo = db.repoFromName[name];
+    if (repo === undefined) {
+      jsonResponse(res, {
+        error: {
+          message: "no such repo: '"+name+"'",
+          code: 404
+        }
+      }, 404);
+    } else {
+      //TODO START HERE: git module to get the dir
+      var d = {
+        "ref": ref,  // should this be called "ref"? check tags. sha1?
+        "path": path,
+        "tree": "TODO"
+      };
+      jsonResponse(res, d);
     }
   });
   
+  // GET /api/repos/:repo/blob/:ref/:path
+  app.get(/^\/api\/repos\/([^\/]+)\/blob\/([^\/]+)\/(.+)\/?/, function(req, res) {
+    var name = req.params[0];
+    var ref = req.params[1];
+    var path = req.params[2];
+    var repo = db.repoFromName[name];
+    if (repo === undefined) {
+      jsonResponse(res, {
+        error: {
+          message: "no such repo: '"+name+"'",
+          code: 404
+        }
+      }, 404);
+    } else {
+      //TODO START HERE: git module to get the content
+      var d = {
+        "ref": ref,  // should this be called "ref"? check tags. sha1?
+        "path": path,
+        "blob": "TODO"
+      };
+      jsonResponse(res, d);
+    }
+  });
+
   app.post('/api/push', requestBodyMiddleware, function(req, res) {
     try {
       var data = JSON.parse(req.body);
@@ -143,7 +201,7 @@ db = (function() {
   Repository.prototype.clone = function clone() {
     var this_ = this;
     chain.add(cloneRepoTask(this_), "clone:"+this.name, function(err) {
-      warn("Finished clone of repository '"+this_.name+"'.");
+      warn("Finished clone task (repository '"+this_.name+"').");
       if (this_.isFetchPending) {
         this_.fetch();
       }
@@ -159,7 +217,7 @@ db = (function() {
       this.numActiveFetches += 1;
       var this_ = this;
       chain.add(fetchRepoTask(this), null, function(err) {
-        warn("Finished fetch of repository '"+this_.name+"'.");
+        warn("Finished fetch task (repository '"+this_.name+"').");
         this_.numActiveFetches -= 1;
       });
     }

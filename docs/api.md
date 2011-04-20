@@ -18,6 +18,12 @@ All responses are **JSON** (that is, except for the current HTML docs that
 you are reading).
 
 
+<!--
+    GET /api/repos/:repo
+    GET /api/repos/:repo/tree/:branch/:path
+    GET /api/repos/:repo/blob/:branch/:path
+-->
+
 
 # Repositories
 
@@ -37,6 +43,8 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
       "ref": $ref
     }
 
+TODO: or should this be /repos/:repo/push. Or even just POST/PUT to /repos/:repo.
+
 
 #### example request
 
@@ -44,7 +52,7 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
         "repository": {
             "url": "git@code.example.com:cool-product.git",
             "name": "cool-product"
-        }
+        },
         "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
         "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
         "ref": "refs/heads/master"
@@ -83,33 +91,53 @@ Return info on all current repositories in the hub.
 
 #### example response
 
-    [
-      {
-        "name": "foo",
-        "dir": "/Users/trentm/tm/hub/data/repos/foo",
-        "isCloned": true,
-        "isFetchPending": false,
-        "numActiveFetches": 0
-      }
-    ]
+    {
+      "repositories": [
+        {
+          "name": "eol",
+          "url": "https://github.com/trentm/eol.git",
+          "dir": "/data/hub/repos/eol.git",
+          // Note: The following are internal. Will probably removed.
+          "isCloned": true,
+          "isFetchPending": false,
+          "numActiveFetches": 0
+        }
+      ]
+    }
 
 
-## GET /repos/:name
+## GET /repos/:repo
 
 Return info on all current repositories in the hub.
 
 #### example request
 
-    $ curl {{ url }}/api/repos/foo
+    $ curl {{ url }}/api/repos/eol
 
 #### example response
 
     {
-      "name": "foo",
-      "dir": "/Users/trentm/tm/hub/data/repos/foo",
-      "isCloned": true,
-      "isFetchPending": false,
-      "numActiveFetches": 0
+      "repository": {
+        "name": "eol",
+        "url": "https://github.com/trentm/eol.git",
+        "dir": "/data/hub/repos/eol.git",
+        // Note: The following are internal. Will probably removed.
+        "isCloned": true,
+        "isFetchPending": false,
+        "numActiveFetches": 0
+      }
+    }
+
+#### failure response
+
+    ...
+    Status: 404
+
+    {
+      "error": {
+        "message": "no such repo: 'asdf'",
+        "code": 404
+      }
     }
 
 
