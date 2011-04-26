@@ -17,6 +17,6 @@ docs:
 #	git push production develop:master
 
 test:
-	(cd tests && make test)
+	(cd test && make test)
 
 .PHONY: test run help docs
