@@ -19,9 +19,58 @@ you are reading).
 
 
 <!--
+    # JSON
+    GET /api/repos
+    POST /api/repos/:repo
+        {
+          "repository": {
+            "url": $git_clone_url,
+            "name": $name
+          }
+          // The following are optional. Just including the above would be
+          // typical for a POST to create a new repo entry in the hub.
+          "before": $before_sha,
+          "after": $after_sha,
+          "ref": $ref
+        }
     GET /api/repos/:repo
-    GET /api/repos/:repo/tree/:branch/:path
-    GET /api/repos/:repo/blob/:branch/:path
+    GET /api/repos/:repo/ref/:ref/:path  # for tree/blob/raw
+        GET /api/repos/eol/ref/master/README.md
+        {
+            "ref": "refs/heads/master",
+            "path": "README.md",
+            "type": "blob",
+            "id": "77f7732c59cb5c5412bd21064a3c9deea672a24a",
+            "blob": "..."
+        }
+        ...OR...
+        {
+            "ref": "refs/heads/master",
+            "path": "README.md",
+            "id": "77f7732c59cb5c5412bd21064a3c9deea672a24a",
+            "blob": "..."
+        }
+        GET /api/repos/eol/ref/master/lib
+        {
+            "ref": "refs/heads/master",
+            "path": "lib",
+            "type": "tree",
+            "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
+            "tree": 
+                 [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
+                     name: 'eol.py',
+                     attributes: 33261 } ] }
+        }
+
+    # HTML
+    GET /:repo
+    GET /:repo/tree/:ref/:path
+    GET /:repo/blob/:ref/:path
+    GET /:repo/raw/:ref/:path
+    GET /:repo/commit/:id
+    GET /:repo/commits/:ref
+    
+
 -->
 
 
