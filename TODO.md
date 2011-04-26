@@ -30,7 +30,7 @@
           },
           "after": "de8251ff97ee194a289832576287d6f8ad74e3d0",
           "ref": "refs/heads/master"
-        }  
+        }
 
     /api/push returns success right away if data looks good
     
@@ -53,7 +53,7 @@
         https://gist.github.com/e876cc3d9a6fb8156dca
     gitter@0.0.1              =sjs remote   GitHub client (API v2), inspired by pengwynn/octopussy 
     
-- make gitteh build on solaris
+- make gitteh build on solaris: https://github.com/libgit2/libgit2/pull/138
 - write the post-receive
 - deploy to trentm.no.de
 - add for eol.git and python-markdown2.git
