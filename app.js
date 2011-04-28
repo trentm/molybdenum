@@ -20,6 +20,7 @@ var child_process = require('child_process');
 
 var gitteh = require('gitteh');
 var chaingang = require('chain-gang');
+var base64_encode = require('base64').encode;
 var _ = require('underscore');
 
 
@@ -99,7 +100,6 @@ function createApp(opts, config) {
   });
   app.get('/api/repos/:repo', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
-    warn(repo.refs);
     if (repo === undefined) {
       jsonResponse(res, {
         error: {
@@ -130,122 +130,71 @@ function createApp(opts, config) {
 
     jsonResponse(res, {repository: repo});
   });
-
-  // GET /api/repos/:repo/ref/:ref/:path
-  app.get(/^\/api\/repos\/([^\/]+)\/ref\/([^\/]+)\/(.+)\/?/, function(req, res) {
+  
+  // GET /api/repos/:repo/ref/:ref[/:path]
+  app.get(/^\/api\/repos\/([^\/]+)\/ref\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
     var refSuffix = req.params[1];
+    
+    // Cleanup/normalize path.
     var path = req.params[2];
+    if (!path) {
+      path = '/';
+    }
+    path = path.slice(1); // Drop leading '/'.
+    if (path[path.length-1] == '/') {
+      path = path.replace(/\/*$/, '');  // Trailing '/'s.
+    }
+    path = path.replace(/\/{2,}/, '/');  // Multiple '/'s to just one.
+    
+    // 1. Determine the repo.
     var repo = db.repoFromName[name];
     if (repo === undefined) {
       return jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
     }
     //TODO:XXX: handle the repo still cloning.
     
-    function serveGitEntry(res, repo, treeId, pathParts, path) {
-      warn("-- serveGitEntry: "+treeId+", "+pathParts)
-      var thisPart = pathParts.shift();
-      var isLastPart = pathParts.length === 0;
-      repo.api.getTree(treeId, function(err, tree) {
-        if (err) {
-          return jsonErrorResponse(res,
-            "error getting commit tree '"+treeId+"'", 500, err);
-        }
-        warn("-- tree "+treeId)
-        warn(tree)
-        warn("XXX Now what?")
-        warn(thisPart);
-        warn(isLastPart);
-        var entry = tree.entries
-          .filter(function(e) { return e.name == thisPart })[0];
-        if (!entry) {
-          jsonErrorResponse(res, "'"+path+"' not found", 404);
-        } else if (isLastPart) {
-          if (S_ISDIR(entry.attributes)) {
-            jsonResponse(res, "TODO:redirect to tree");
-            //res.writeHead("XXX url", 301);
-            //res.end();
-            return;
-          }
-          //TODO check attributes, if dir: redir to 'tree'
-          repo.api.getBlob(entry.id, function(err, blob) {
-            //TODO:XXX err
-            warn(Object.keys(blob))
-            warn("blob id: "+blob.id)
-            //TODO:XXX factor out to non-response handler to be shared
-            //   here and for html rendering. Important for binary file handling
-            //   where will pass aorund the buffer.
-            jsonResponse(res, {
-              "path": path,
-              "id": entry.id, // perhaps 'tree' instead of 'sha1' here?
-              "blob": blob.data.toString()
-            });
-          })
-        } else {
-          //TODO: assert entry.attributes shows this is a dir
-          serveGitEntry(res, repo, entry.id, pathParts, path);
-        }
-      });
-    }
-    
-    function onCommitRef(commitRef) {
-      repo.api.getCommit(commitRef.target, function(err, commit) {
-        if (err) {
-          return jsonErrorResponse(res,
-            "error getting commit '"+commitRef.target+"'", 500, err);
-        }
-        warn("-- commit:")
-        warn(commit);
-        serveGitEntry(res, repo, commit.tree, path.split('/'), path);
-        
-        //repo.api.getTree(commit.tree, function(err, tree) {
-        //  if (err) {
-        //    return jsonErrorResponse(res,
-        //      "error getting commit tree '"+commit.tree+"'", 500, err);
-        //  }
-        //  //TODO: START HERE:
-        //  // - do the recursive resolve of the tree
-        //  // - handle all of (blob|tree|raw) serving
-        //  //serveGitFile(repo, tree, parts, res, next);
-        //  warn("-- tree:");
-        //  warn(tree);
-        //  jsonResponse(res, {
-        //    "ref": commitRef.name,
-        //    "path": path,
-        //    "sha1": commitRef.target,
-        //    "blob": "TODO"
-        //  });
-        //});
-      });
-    }
-    function onRef(err, apiRef) {
-      if (err) {
-        return jsonErrorResponse(res,
-          "error looking up reference for '"+ref+"'", 500, err);
-      }
-      if (apiRef.type === gitteh.GIT_REF_OID) {
-        onCommitRef(apiRef);
-      } else if (apiRef.type === gitteh.GIT_REF_SYMBOLIC) {
-        apiRef.resolve(onRef);
-      } else {
-        jsonErrorResponse(res,
-          "Unknown reference type for '"+ref+"': "+apiRef.type, 500);
-      }
-    }
+    // 2. Determine the full ref string.
     repo.tags(function(err, tags) {
       if (err) {
         return jsonErrorResponse(res,
           "error getting tags for repo '"+repo.name+"'", 500, err);
       }
-      var ref;
+      var refString;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
       if (tags.indexOf(refSuffix) != -1) {
-        ref = 'refs/tags/' + refSuffix;
+        refString = 'refs/tags/' + refSuffix;
       } else {
-        ref = 'refs/heads/' + refSuffix;
+        refString = 'refs/heads/' + refSuffix;
       }
-      repo.api.getReference(ref, onRef);
+      
+      // 3. Get the data for this repo, refString and path.
+      getGitObject(repo, refString, path, function(err, obj) {
+        if (err) {
+          //TODO:XXX 404 if path just not found
+          jsonErrorResponse(res,
+            "error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
+            500, err);
+          return;
+        }
+        if (obj.tree) {
+          obj.ref = refString;
+          obj.path = path;
+          obj.type = "tree";
+          jsonResponse(res, obj);
+        } else if (obj.blob) {
+          obj.ref = refString;
+          obj.path = path;
+          obj.type = "blob";
+          obj.blob.looksLikeUtf8 = looksLikeUtf8(obj.blob.data);
+          obj.blob.data = base64_encode(obj.blob.data);
+          jsonResponse(res, obj);
+        } else {
+          jsonErrorResponse(res,
+            "unexpected git object: keys="+JSON.stringify(Object.keys(obj)), obj);
+        }
+      });
     });
   });
 
@@ -395,6 +344,96 @@ db = (function() {
 
 
 //---- internal support functions
+
+/* Get the referenced repository blob or tree and call `callback`:
+ *
+ *    callback(err, object);
+ *
+ * If `err` is given it will be of the form:
+ *
+ *    {
+ *      "error": error message string
+ *      "details": optional object with some error details
+ *    }
+ *
+ */
+function getGitObject(repo, refString, path, callback) {
+  function getGitEntry(repo, treeId, pathParts, path) {
+    repo.api.getTree(treeId, function(err, tree) {
+      if (err) {
+        callback({
+          error: "error getting commit tree '"+treeId+"'",
+          details: err
+        });
+        return;
+      }
+      if (pathParts.length == 0) {
+          callback(null, {
+            tree: tree
+          });
+      } else {
+        var thisPart = pathParts.shift();
+        var isLastPart = pathParts.length === 0;
+        var entry = tree.entries
+          .filter(function(e) { return e.name == thisPart })[0];
+        if (!entry) {
+          callback({error: "'"+path+"' not found"});
+          return;
+        } else if (isLastPart && !S_ISDIR(entry.attributes)) {
+          repo.api.getBlob(entry.id, function(err, blob) {
+            if (err) {
+              callback({
+                error: "error getting blob id '"+entry.id+"'",
+                details: err
+              });
+              return;
+            }
+            callback(null, {
+              blob: blob
+            });
+          });
+        } else {
+          //TODO: assert entry.attributes shows this is a dir
+          getGitEntry(repo, entry.id, pathParts, path);
+        }
+      }
+    });
+  }
+  
+  function onCommitRef(commitRef) {
+    repo.api.getCommit(commitRef.target, function(err, commit) {
+      if (err) {
+        callback({
+          error: "error getting commit '"+commitRef.target+"'",
+          details: err
+        });
+        return;
+      }
+      var pathParts = (path ? path.split('/') : []);
+      getGitEntry(repo, commit.tree, pathParts, path);
+    });
+  }
+  
+  function onRef(err, ref) {
+    if (err) {
+      callback({
+        error: "error looking up reference for '"+refString+"'",
+        details: err
+      });
+      return;
+    }
+    if (ref.type === gitteh.GIT_REF_OID) {
+      onCommitRef(ref);
+    } else if (ref.type === gitteh.GIT_REF_SYMBOLIC) {
+      ref.resolve(onRef);
+    } else {
+      callback({error: "Unknown reference type for '"+refString+"': "+ref.type});
+    }
+  }
+
+  repo.api.getReference(refString, onRef);
+}
+
 
 function fetchRepoTask(repo) {
   return function(worker) {
@@ -583,6 +622,17 @@ function log(o) {
   console.log(o);
 }
 
+// Heuristic: If the first 1kB decodes successfully as UTF-8, then say yes.
+function looksLikeUtf8(buf) {
+  //TODO: Need to change for having unluckily split in the middle of
+  //  a UTF-8 char. See <http://debuggable.com/posts/streaming-utf-8-with-node-js:4bf28e8b-a290-432f-a222-11c1cbdd56cb>
+  try {
+    decodeURIComponent(escape(buf.slice(0, Math.min(buf.length, 1024))));
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
 
 function getVersion() {
   return fs.readFileSync(__dirname + "/VERSION", "utf8").trim();
