@@ -74,7 +74,65 @@ you are reading).
 
 # Repositories
 
-## POST /push
+## GET /repos
+
+List all repositories currently in the hub. (TODO: add paging)
+
+#### example request
+
+    $ curl {{ url }}/api/repos
+
+#### example response
+
+    {
+      "repositories": [
+        {
+          "name": "eol",
+          "url": "https://github.com/trentm/eol.git",
+          "dir": "/data/hub/repos/eol.git",
+          // Note: The following are internal. Will probably be removed.
+          "isCloned": true,
+          "isFetchPending": false,
+          "numActiveFetches": 0,
+          ...
+        }
+      ]
+    }
+
+
+## GET /repos/:repo
+
+Return info on all current repositories in the hub.
+
+#### example request
+
+    $ curl {{ url }}/api/repos/eol
+
+#### example response
+
+    {
+      "repository": {
+        "name": "eol",
+        "url": "https://github.com/trentm/eol.git",
+        "dir": "/data/hub/repos/eol.git",
+        ...
+      }
+    }
+
+#### failure response
+
+    ...
+    Status: 404
+
+    {
+      "error": {
+        "message": "no such repo: 'asdf'",
+        "code": 404
+      }
+    }
+
+
+## POST /repos/:repo
 
 Let the hub know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -84,13 +142,15 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
       "repository": {
         "url": $git_clone_url,
         "name": $name
-      }
+      },
+      // These are optional:
       "before": $before_sha,
       "after": $after_sha,
       "ref": $ref
     }
 
-TODO: or should this be /repos/:repo/push. Or even just POST/PUT to /repos/:repo.
+At a minimum, only the "repository" key is required, though the other
+fields will be used if given.
 
 
 #### example request
@@ -128,65 +188,6 @@ repo's ".git/hooks" dir.
     }
 
 
-## GET /repos
-
-Return info on all current repositories in the hub.
-
-#### example request
-
-    $ curl {{ url }}/api/repos
-
-#### example response
-
-    {
-      "repositories": [
-        {
-          "name": "eol",
-          "url": "https://github.com/trentm/eol.git",
-          "dir": "/data/hub/repos/eol.git",
-          // Note: The following are internal. Will probably removed.
-          "isCloned": true,
-          "isFetchPending": false,
-          "numActiveFetches": 0
-        }
-      ]
-    }
-
-
-## GET /repos/:repo
-
-Return info on all current repositories in the hub.
-
-#### example request
-
-    $ curl {{ url }}/api/repos/eol
-
-#### example response
-
-    {
-      "repository": {
-        "name": "eol",
-        "url": "https://github.com/trentm/eol.git",
-        "dir": "/data/hub/repos/eol.git",
-        // Note: The following are internal. Will probably removed.
-        "isCloned": true,
-        "isFetchPending": false,
-        "numActiveFetches": 0
-      }
-    }
-
-#### failure response
-
-    ...
-    Status: 404
-
-    {
-      "error": {
-        "message": "no such repo: 'asdf'",
-        "code": 404
-      }
-    }
-
 
 # General
 
@@ -199,7 +200,7 @@ on the request "Accept" header.
 
     {
       "endpoints": [
-        "POST   /api/push"
+        ...
       ], 
       "version": "1.0.0"
     }

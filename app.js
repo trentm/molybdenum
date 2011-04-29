@@ -15,7 +15,7 @@ var express = require('express');
 var iniparser = require('iniparser');
 var fs = require('fs');
 var sys = require('sys');
-var path = require('path');
+var Path = require('path');
 var child_process = require('child_process');
 
 var gitteh = require('gitteh');
@@ -71,15 +71,7 @@ function createApp(opts, config) {
   });
 
 
-  //-- Routes.
-  app.get('/', function(req, res) {
-    var view = {
-      repositories: _(db.repoFromName).chain()
-        .values().sortBy(function (r) { return r.name }).value()
-    };
-    //view.debug = JSON.stringify(view.repositories, null, 2);
-    mustacheResponse(res, "index.mustache", view)
-  });
+  //-- API Routes.
   
   app.get('/api', function(req, res) {
     var accept = req.header("Accept");
@@ -134,18 +126,8 @@ function createApp(opts, config) {
   app.get(/^\/api\/repos\/([^\/]+)\/ref\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
     var refSuffix = req.params[1];
-    
-    // Cleanup/normalize path.
-    var path = req.params[2];
-    if (!path) {
-      path = '/';
-    }
-    path = path.slice(1); // Drop leading '/'.
-    if (path[path.length-1] == '/') {
-      path = path.replace(/\/*$/, '');  // Trailing '/'s.
-    }
-    path = path.replace(/\/{2,}/, '/');  // Multiple '/'s to just one.
-    
+    var path = pathFromRouteParam(req.params[2]);
+
     // 1. Determine the repo.
     var repo = db.repoFromName[name];
     if (repo === undefined) {
@@ -196,6 +178,109 @@ function createApp(opts, config) {
       });
     });
   });
+  
+  
+  //---- HTML Routes
+  
+  app.get('/', function(req, res) {
+    var view = {
+      repositories: _(db.repoFromName).chain()
+        .values().sortBy(function (r) { return r.name }).value()
+    };
+    mustacheResponse(res, "index.mustache", view)
+  });
+  
+  app.get('/:repo', function(req, res) {
+    var repo = db.repoFromName[req.params.repo];
+    if (repo === undefined) {
+      mustache404Response(res, req.path);
+    } else {
+      var view = {
+        repository: repo
+      }
+      //TODO: repo.branchesAndTags combo
+      repo.branches(function(err, branches) {
+        //TODO: err
+        view.branches = branches;
+        var defaultBranch = 'master'; //TODO: how to determine default branch?
+        getGitObject(repo, 'refs/heads/'+defaultBranch, '', function(err, data) {
+          //TODO: err
+          view.entries = _(data.tree.entries).chain()
+            .map(function(e) {
+              var isDir = S_ISDIR(e.attributes);
+              return {
+                name: e.name,
+                isDir: isDir,
+                href: '/' + [repo.name, (isDir ? "tree" : "blob"),
+                             defaultBranch, e.name].join('/')
+              }
+            })
+            .sortBy(function(e) { return [!e.isDir, e.name] })
+            .value();
+          mustacheResponse(res, "repo.mustache", view);
+        })
+      })
+    }
+  });
+
+  // GET /:repo   //TODO: combine this endpoint in (same handling)
+  // GET /:repo/tree/:ref[/:path]
+  app.get(/^\/([^\/]+)\/tree\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
+    var name = req.params[0];
+    var refSuffix = req.params[1];
+    var path = pathFromRouteParam(req.params[2]);
+
+    var repo = db.repoFromName[name];
+    if (repo === undefined) {
+      mustache404Response(res, req.path);
+      return;
+    }
+
+    var defaultBranch = 'master'; //TODO: how to determine default branch?
+    if (path === '' && refSuffix === defaultBranch) {
+      res.redirect('/'+name);  //TODO: other than 301 status here?
+      return;
+    }
+
+    // Breadcrumbs.
+    var dir = path;
+    var breadcrumbs = [];
+    while (true) {
+      breadcrumbs.push({
+        name: Path.basename(dir),
+        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir
+      });
+      dir = dir.slice(0, dir.lastIndexOf('/'));
+      if (dir.lastIndexOf('/') == -1) {
+        break;
+      }
+    }
+    breadcrumbs.push({name: repo.name, href: '/'+repo.name});
+    breadcrumbs.reverse();
+    
+    var view = {
+      repository: repo,
+      breadcrumbs: breadcrumbs
+    }
+    //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
+    getGitObject(repo, 'refs/heads/'+refSuffix, path, function(err, data) {
+      //TODO: err
+      view.entries = _(data.tree.entries).chain()
+        .map(function(e) {
+          var isDir = S_ISDIR(e.attributes);
+          return {
+            name: e.name,
+            isDir: isDir,
+            href: '/' + [repo.name, (isDir ? "tree" : "blob"),
+                         defaultBranch, e.name].join('/')
+          }
+        })
+        .sortBy(function(e) { return [!e.isDir, e.name] })
+        .value();
+      mustacheResponse(res, "repo.mustache", view);
+    })
+  });
+  
 
   return app;
 }
@@ -215,12 +300,12 @@ db = (function() {
    */
   function Repository(name, url) {
     this.name = name;
-    if (url.indexOf('@') == -1 && path.existsSync(url)) {
+    if (url.indexOf('@') == -1 && Path.existsSync(url)) {
       url = absPath(url);
     }
     this.url = url;
-    this.dir = path.join(config.reposDir, name + ".git");
-    this.isCloned = path.existsSync(this.dir);
+    this.dir = Path.join(config.reposDir, name + ".git");
+    this.isCloned = Path.existsSync(this.dir);
     this.isFetchPending = false;
     this.numActiveFetches = 0;
     this._apiCache = null;
@@ -289,8 +374,8 @@ db = (function() {
     pendingFetchFromRepoName: {},
 
     load: function load() {
-      var reposJson = path.join(config.dataDir, "repos.json");
-      if (! path.existsSync(reposJson)) {
+      var reposJson = Path.join(config.dataDir, "repos.json");
+      if (! Path.existsSync(reposJson)) {
         this.repoFromName = {};
         this.save();
       } else {
@@ -318,7 +403,7 @@ db = (function() {
     },
     
     save: function save() {
-      var reposJson = path.join(config.dataDir, "repos.json");
+      var reposJson = Path.join(config.dataDir, "repos.json");
       var repos = _.map(this.repoFromName,
         function(r) { return {name: r.name, url: r.url} });
       fs.writeFileSync(reposJson,
@@ -452,12 +537,12 @@ function fetchRepoTask(repo) {
 function cloneRepoTask(repo) {
   return function(worker) {
     //TODO: Better tmpDir naming for uniqueness.
-    var tmpDir = path.join(config.tmpDir, repo.name+"."+process.pid)
+    var tmpDir = Path.join(config.tmpDir, repo.name+"."+process.pid)
     gitExec(["clone", "--bare", repo.url, tmpDir], null, function(err, stdout, stderr) {
       if (err) {
         //TODO: include 'data' in error.
         warn("error: Error cloning repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err);
-        if (path.existsSync(tmpDir)) {
+        if (Path.existsSync(tmpDir)) {
           fs.rmdirSync(tmpDir)
         }
       } else {
@@ -529,6 +614,25 @@ function gitExec(args, gitDir, callback) {
 }
 
 
+function pathFromRouteParam(param) {
+  // Cleanup/normalize path.
+  var path = param;
+  if (!path) {
+    path = '/';
+  }
+  path = path.slice(1); // Drop leading '/'.
+  if (path[path.length-1] == '/') {
+    path = path.replace(/\/*$/, '');  // Trailing '/'s.
+  }
+  path = path.replace(/\/{2,}/, '/');  // Multiple '/'s to just one.
+  return path;
+}
+
+
+function mustache404Response(res, path) {
+  mustacheResponse(res, "404.mustache", {path: path}, 404);
+}
+
 // Render the given template path and responding with that.
 //
 // If the global 'MUSTACHE_VIEW_DEBUG === true' or the 'debug' argument is
@@ -549,7 +653,6 @@ function mustacheResponse(res, templatePath, view, status /* =200 */, debug /* =
       return;
     }
     if ((debug !== null ? debug : MUSTACHE_VIEW_DEBUG) && view.debug === undefined) {
-      warn("here adding debug attr");
       try {
         view.debug = JSON.stringify(view, null, 2);
       } catch (ex) {
@@ -677,7 +780,7 @@ function getVersion() {
 
 
 function absPath(p, relativeTo) {
-  // Node 0.4.0 has `path.resolve`. Switch to that when can.
+  // Node 0.4.0 has `Path.resolve`. Switch to that when can.
   if (p[0] !== '/') {
     if (typeof(relativeTo) === "undefined") {
       relativeTo = process.cwd();
@@ -693,15 +796,15 @@ function createDataArea(config) {
   }
   config.dataDir = absPath(config.dataDir);
   console.log("Setup data dir, '"+config.dataDir+"'.")
-  if (! path.existsSync(config.dataDir)) {
+  if (! Path.existsSync(config.dataDir)) {
     throw("configured dataDir, '"+config.dataDir+"' does not exist");
   }
-  config.reposDir = path.join(config.dataDir, "repos");
-  if (! path.existsSync(config.reposDir)) {
+  config.reposDir = Path.join(config.dataDir, "repos");
+  if (! Path.existsSync(config.reposDir)) {
     fs.mkdirSync(config.reposDir, 0755);
   }
-  config.tmpDir = path.join(config.dataDir, "tmp");
-  if (path.existsSync(config.tmpDir)) {
+  config.tmpDir = Path.join(config.dataDir, "tmp");
+  if (Path.existsSync(config.tmpDir)) {
     fs.rmdirSync(config.tmpDir);
   }
   fs.mkdirSync(config.tmpDir, 0755);
@@ -712,8 +815,8 @@ function createPidFile(config) {
   var pidFile = config && config.pidFile && absPath(config.pidFile);
   if (pidFile) {
     // Limitation, doesn't do "mkdir -p", so only one dir created.
-    if (! path.existsSync(path.dirname(pidFile))) {
-      fs.mkdirSync(path.dirname(pidFile), 0755);
+    if (! Path.existsSync(Path.dirname(pidFile))) {
+      fs.mkdirSync(Path.dirname(pidFile), 0755);
     }
     fs.writeFileSync(pidFile, process.pid.toString());
   }
@@ -722,7 +825,7 @@ function createPidFile(config) {
 
 function deletePidFile(config) {
   var pidFile = config && config.pidFile && absPath(config.pidFile);
-  if (pidFile && path.existsSync(pidFile)) {
+  if (pidFile && Path.existsSync(pidFile)) {
     fs.unlinkSync(pidFile);
   }
 }
@@ -753,7 +856,7 @@ function internalMainline(argv) {
     configPath = process.env.HUB_CONFIG;
   }
   if (configPath) {
-    if (! path.existsSync(configPath)) {
+    if (! Path.existsSync(configPath)) {
       warn("No config file found: '" + configPath + "' does not exist. Aborting.");
       return 1;
     }

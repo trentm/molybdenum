@@ -1,0 +1,20 @@
+{{#repository}}
+<h1>{{ name }}</h1>
+{{/repository}}
+
+<h2>
+{{#breadcrumbs}}
+<a href="{{href}}">{{name}}</a> /
+{{/breadcrumbs}}
+</h2>
+
+<ul>
+{{#entries}}
+    <li><a href="{{ href }}">{{ name }}{{#isDir}}/{{/isDir}}</a></li>
+{{/entries}}
+</ul>
+
+<!-- TODO: debug partial with debug info {{!<debug}} -->
+<pre id="debug">
+{{ debug }}
+</pre>
