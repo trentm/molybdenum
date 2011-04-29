@@ -1,0 +1,13 @@
+hi
+
+<ul>
+{{#repositories}}
+    <li><a href="/{{ name }}" name="{{ name }} repository">{{ name }}</a></li>
+{{/repositories}}
+</ul>
+
+
+<!-- debug partial with debug info -->
+<pre id="debug">
+{{ debug }}
+</pre>

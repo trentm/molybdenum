@@ -21,6 +21,7 @@ var child_process = require('child_process');
 var gitteh = require('gitteh');
 var chaingang = require('chain-gang');
 var base64_encode = require('base64').encode;
+var Mustache = require('mustache');
 var _ = require('underscore');
 
 
@@ -38,10 +39,9 @@ var config = null;
 var db;  // see "Database" below
 var chain = chaingang.create({workers: 3})
 
-// Mustache-like templating.
-_.templateSettings = {
-  interpolate : /\{\{(.+?)\}\}/g
-};
+const MUSTACHE_VIEW_DEBUG = true;
+var templatesDir = __dirname + '/templates';
+
 
 
 
@@ -73,22 +73,21 @@ function createApp(opts, config) {
 
   //-- Routes.
   app.get('/', function(req, res) {
-    res.header("Content-Type", "text/html");
-    res.end("Hi there, checkout <a href='/api'>the API</a> for now.");
+    var view = {
+      repositories: _(db.repoFromName).chain()
+        .values().sortBy(function (r) { return r.name }).value()
+    };
+    //view.debug = JSON.stringify(view.repositories, null, 2);
+    mustacheResponse(res, "index.mustache", view)
   });
   
   app.get('/api', function(req, res) {
     var accept = req.header("Accept");
     if (accept && (accept.search("application/xhtml+xml") != -1
                    || accept.search("text/html") != -1)) {
-      fs.readFile(__dirname + "/docs/api.html", "utf-8", function(err, content) {
-        //TODO:XXX error handling
-        //TODO: cache the template!
-        var template = _.template(content);
-        res.header("Content-Type", "text/html");
-        //TODO: provide a config var for the public url
-        res.end(template({url: "http://"+config.host+":"+config.port}));
-      });
+      mustacheResponse(res, "/../docs/api.html",
+        {url: "http://"+config.host+":"+config.port},
+        null, false);
     } else {
       res.header("Content-Type", "application/json")
       res.sendfile(__dirname + "/docs/api.json");
@@ -259,6 +258,8 @@ db = (function() {
 
   Repository.prototype.clone = function clone() {
     var this_ = this;
+    // We use a task name "clone:$repo_name" to ensure that there is
+    // only ever one clone task for a given repo.
     chain.add(cloneRepoTask(this_), "clone:"+this.name, function(err) {
       log("Finished clone task (repository '"+this_.name+"').");
       if (this_.isFetchPending) {
@@ -527,6 +528,42 @@ function gitExec(args, gitDir, callback) {
   child.stdin.end();
 }
 
+
+// Render the given template path and responding with that.
+//
+// If the global 'MUSTACHE_VIEW_DEBUG === true' or the 'debug' argument is
+// true, then a `debug` variable is added to the view. It is a JSON repr
+// of the `view`. You may use `debug === false` to override the global.
+function mustacheResponse(res, templatePath, view, status /* =200 */, debug /* =null */) {
+  if (!status) { status = 200; }
+  if (debug === undefined) { debug = null; }
+  
+  fs.readFile(templatesDir + '/' + templatePath, 'utf-8', function(err, template) {
+    if (err) {
+      //TODO: 500.mustache and use that for rendering. Include 'err' content.
+      warn(err);
+      res.writeHead(500, {
+        "Content-Type": "text/html"
+      })
+      res.end("Unexpected error reading template: '"+templatePath+"'.");
+      return;
+    }
+    if ((debug !== null ? debug : MUSTACHE_VIEW_DEBUG) && view.debug === undefined) {
+      warn("here adding debug attr");
+      try {
+        view.debug = JSON.stringify(view, null, 2);
+      } catch (ex) {
+        // Log it, but don't break template rendering.
+        warn("warning: could not add 'debug' output to view: "+ex);
+      }
+    }
+    // TODO: content-length necessary?
+    res.writeHead(status, {
+      "Content-Type": "text/html"
+    })
+    res.end(Mustache.to_html(template, view));
+  });
+}
 
 function jsonErrorResponse(res, message, code, details) {
   var e = {error: {message: message, code: code}};
