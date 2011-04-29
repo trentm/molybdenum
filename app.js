@@ -189,47 +189,11 @@ function createApp(opts, config) {
     };
     mustacheResponse(res, "index.mustache", view)
   });
-  
-  app.get('/:repo', function(req, res) {
-    var repo = db.repoFromName[req.params.repo];
-    if (repo === undefined) {
-      mustache404Response(res, req.path);
-    } else {
-      var view = {
-        repository: repo
-      }
-      //TODO: repo.branchesAndTags combo
-      repo.branches(function(err, branches) {
-        //TODO: err
-        view.branches = branches;
-        var defaultBranch = 'master'; //TODO: how to determine default branch?
-        getGitObject(repo, 'refs/heads/'+defaultBranch, '', function(err, data) {
-          //TODO: err
-          view.entries = _(data.tree.entries).chain()
-            .map(function(e) {
-              var isDir = S_ISDIR(e.attributes);
-              return {
-                name: e.name,
-                isDir: isDir,
-                href: '/' + [repo.name, (isDir ? "tree" : "blob"),
-                             defaultBranch, e.name].join('/')
-              }
-            })
-            .sortBy(function(e) { return [!e.isDir, e.name] })
-            .value();
-          mustacheResponse(res, "repo.mustache", view);
-        })
-      })
-    }
-  });
 
-  // GET /:repo   //TODO: combine this endpoint in (same handling)
+  // GET /:repo
   // GET /:repo/tree/:ref[/:path]
-  app.get(/^\/([^\/]+)\/tree\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
+  app.get(/^\/([^\/]+)(\/tree\/([^\/\n]+)(\/.*?)?)?$/, function(req, res) {
     var name = req.params[0];
-    var refSuffix = req.params[1];
-    var path = pathFromRouteParam(req.params[2]);
-
     var repo = db.repoFromName[name];
     if (repo === undefined) {
       mustache404Response(res, req.path);
@@ -237,15 +201,20 @@ function createApp(opts, config) {
     }
 
     var defaultBranch = 'master'; //TODO: how to determine default branch?
+    var refSuffix = req.params[2];
+    var path = pathFromRouteParam(req.params[3]);
     if (path === '' && refSuffix === defaultBranch) {
       res.redirect('/'+name);  //TODO: other than 301 status here?
       return;
     }
+    if (!refSuffix) {
+      refSuffix = defaultBranch;
+    }
 
     // Breadcrumbs.
-    var dir = path;
     var breadcrumbs = [];
-    while (true) {
+    var dir = path;
+    while (dir) {
       breadcrumbs.push({
         name: Path.basename(dir),
         href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir
@@ -263,16 +232,23 @@ function createApp(opts, config) {
       breadcrumbs: breadcrumbs
     }
     //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
-    getGitObject(repo, 'refs/heads/'+refSuffix, path, function(err, data) {
-      //TODO: err
+    var refString = 'refs/heads/'+refSuffix
+    getGitObject(repo, refString, path, function(err, data) {
+      if (err) {
+        mustacheResponse(res, "500.mustache", {
+          error: "Error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
+          details: JSON.stringify(err, null, 2)
+        }, 500)
+        return
+      }
       view.entries = _(data.tree.entries).chain()
         .map(function(e) {
           var isDir = S_ISDIR(e.attributes);
           return {
             name: e.name,
             isDir: isDir,
-            href: '/' + [repo.name, (isDir ? "tree" : "blob"),
-                         defaultBranch, e.name].join('/')
+            href: '/' + repo.name + '/' + (isDir ? "tree" : "blob")
+              + '/' + refSuffix + (path ? '/'+path : '') + '/' + e.name
           }
         })
         .sortBy(function(e) { return [!e.isDir, e.name] })
@@ -620,11 +596,11 @@ function pathFromRouteParam(param) {
   if (!path) {
     path = '/';
   }
+  path = path.replace(/\/{2,}/, '/');  // Multiple '/'s to just one.
   path = path.slice(1); // Drop leading '/'.
   if (path[path.length-1] == '/') {
     path = path.replace(/\/*$/, '');  // Trailing '/'s.
   }
-  path = path.replace(/\/{2,}/, '/');  // Multiple '/'s to just one.
   return path;
 }
 
