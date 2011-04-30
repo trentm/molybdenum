@@ -243,6 +243,10 @@ function createApp(opts, config) {
         return
       }
       //TODO: redir to blob if not a tree
+      if (obj.tree === undefined && obj.blob !== undefined) {
+        res.redirect('/'+name+'/blob/'+refSuffix+'/'+path);
+        return;
+      }
       view.entries = _(obj.tree.entries).chain()
         .map(function(e) {
           var isDir = S_ISDIR(e.attributes);
@@ -255,7 +259,7 @@ function createApp(opts, config) {
         })
         .sortBy(function(e) { return [!e.isDir, e.name] })
         .value();
-      mustacheResponse(res, "repo.mustache", view);
+      mustacheResponse(res, "tree.mustache", view);
     })
   });
   
