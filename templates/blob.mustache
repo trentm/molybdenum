@@ -8,11 +8,14 @@
 {{/breadcrumbs}}
 </h2>
 
-<ul>
-{{#entries}}
-    <li><a href="{{ href }}">{{ name }}{{#isDir}}/{{/isDir}}</a></li>
-{{/entries}}
-</ul>
+{{#text}}
+<pre>
+{{text}}
+</pre>
+{{/text}}
+{{^text}}
+<p>Binary content. <!-- TODO: download link --></p>
+{{/text}}
 
 <!-- TODO: debug partial with debug info {{!<debug}} -->
 <pre id="debug">

@@ -1,7 +1,7 @@
 - https://github.com/janl/mustache.js/issues/48
     sounds like a good fix to me, but it comes with a little nasty
     reshuffling of n in the textcase/examples. Anyone up for producing a full
-    patch that makes all tests pass?
+    patch that makes all tests pass? I have a start at this in ~/tm/mustache.js.
 - basic repo nav
 - 404.mustache, 500.mustache
 - "POST /api/repos/:repo": Error if repo names don't match. Error if

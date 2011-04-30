@@ -217,14 +217,15 @@ function createApp(opts, config) {
     while (dir) {
       breadcrumbs.push({
         name: Path.basename(dir),
-        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir
+        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
+        dir: true
       });
       dir = dir.slice(0, dir.lastIndexOf('/'));
       if (dir.lastIndexOf('/') == -1) {
         break;
       }
     }
-    breadcrumbs.push({name: repo.name, href: '/'+repo.name});
+    breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
     breadcrumbs.reverse();
     
     var view = {
@@ -233,7 +234,7 @@ function createApp(opts, config) {
     }
     //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
     var refString = 'refs/heads/'+refSuffix
-    getGitObject(repo, refString, path, function(err, data) {
+    getGitObject(repo, refString, path, function(err, obj) {
       if (err) {
         mustacheResponse(res, "500.mustache", {
           error: "Error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
@@ -241,7 +242,8 @@ function createApp(opts, config) {
         }, 500)
         return
       }
-      view.entries = _(data.tree.entries).chain()
+      //TODO: redir to blob if not a tree
+      view.entries = _(obj.tree.entries).chain()
         .map(function(e) {
           var isDir = S_ISDIR(e.attributes);
           return {
@@ -257,6 +259,64 @@ function createApp(opts, config) {
     })
   });
   
+  // GET /:repo/blob/:ref[/:path]
+  app.get(/^\/([^\/]+)\/blob\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
+    var name = req.params[0];
+    var repo = db.repoFromName[name];
+    if (repo === undefined) {
+      mustache404Response(res, req.path);
+      return;
+    }
+
+    var refSuffix = req.params[1];
+    var path = pathFromRouteParam(req.params[2]);
+
+    // Breadcrumbs.
+    var breadcrumbs = [{name: Path.basename(path)}];
+    var dir = path;
+    while (dir) {
+      dir = dir.slice(0, dir.lastIndexOf('/'));
+      if (dir.lastIndexOf('/') == -1) {
+        break;
+      }
+      breadcrumbs.push({
+        name: Path.basename(dir),
+        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
+        dir: true
+      });
+    }
+    breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
+    breadcrumbs.reverse();
+    
+    var view = {
+      repository: repo,
+      breadcrumbs: breadcrumbs
+    }
+    //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
+    var refString = 'refs/heads/'+refSuffix
+    getGitObject(repo, refString, path, function(err, obj) {
+      if (err) {
+        mustacheResponse(res, "500.mustache", {
+          error: "Error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
+          details: JSON.stringify(err, null, 2)
+        }, 500)
+        return
+      }
+      
+      if (obj.blob === undefined && obj.tree !== undefined) {
+        res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
+        return;
+      }
+      if (looksLikeUtf8(obj.blob.data)) {
+        //TODO:XXX guard against failure later in document
+        view.text = decodeURIComponent(escape(obj.blob.data));
+      } else {
+        //TODO:XXX
+        warn("XXX nope, not utf8")
+      }
+      mustacheResponse(res, "blob.mustache", view);
+    })
+  });
 
   return app;
 }
