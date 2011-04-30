@@ -1,7 +1,3 @@
-- try out handlebars.js:
-    - https://github.com/wycats/handlebars.js/
-    - is whitespace handling good?
-    - https://github.com/donpark/hbs # express view engine, layout example (hack)
 - https://github.com/janl/mustache.js/issues/48
     sounds like a good fix to me, but it comes with a little nasty
     reshuffling of n in the textcase/examples. Anyone up for producing a full
