@@ -8,13 +8,22 @@
 {{/breadcrumbs}}
 </h2>
 
+<div id="actions">
+    <a href="{{rawUrl}}">raw</a>
+</div>
+
 {{#text}}
 <pre>
 {{text}}
 </pre>
 {{/text}}
 {{^text}}
+{{#isImage}}
+<img src="{{rawUrl}}">
+{{/isImage}}
+{{^isImage}}
 <p>Binary content. <!-- TODO: download link --></p>
+{{/isImage}}
 {{/text}}
 
 <!-- TODO: debug partial with debug info {{!<debug}} -->

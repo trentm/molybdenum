@@ -1,16 +1,26 @@
-- https://github.com/janl/mustache.js/issues/48
-    sounds like a good fix to me, but it comes with a little nasty
-    reshuffling of n in the textcase/examples. Anyone up for producing a full
-    patch that makes all tests pass? I have a start at this in ~/tm/mustache.js.
-- basic repo nav
-- 404.mustache, 500.mustache
+- 'http://0.0.0.0:3333/dsapi/' breakage: 404
+- basic styles
+- non-default branch. tags.
+- test cases!
+- nicer code block styling: line numbers
+- nicer code block styling: syntax coloring
+- nicer code block styling: #L12-L20 support
+- GET /:repo/commit/:id
+- GET /:repo/commits/:ref
+- GET /:repo/blame/:ref/:path
+- GET /:repo/commits/:ref/:path
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
-- restify (not until regex routing)
 - write the post-receive
 - deploy to joyent.no.de. Just json, eol, python-markdown2, restdown and a test repo.
 - https for joyent.no.de
 - 'hub' client?
+- restify (not until regex routing)
+- https://github.com/janl/mustache.js/issues/48
+    sounds like a good fix to me, but it comes with a little nasty
+    reshuffling of n in the textcase/examples. Anyone up for producing a full
+    patch that makes all tests pass? I have a start at this in ~/tm/mustache.js.
+  At the least, just pull in this mustache.js (easier).
 - document the following in inline docs:
     startup: queue up chaingang task to update each repo, then never lose anything on crash
         might be overkill with lots of repos. Could also have "POST /api/push" with empty

@@ -23,6 +23,7 @@ var chaingang = require('chain-gang');
 var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
 var _ = require('underscore');
+var mime = require('mime');
 
 
 //--- exports for module usage
@@ -220,10 +221,10 @@ function createApp(opts, config) {
         href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
         dir: true
       });
-      dir = dir.slice(0, dir.lastIndexOf('/'));
       if (dir.lastIndexOf('/') == -1) {
         break;
       }
+      dir = dir.slice(0, dir.lastIndexOf('/'));
     }
     breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
     breadcrumbs.reverse();
@@ -264,7 +265,8 @@ function createApp(opts, config) {
   });
   
   // GET /:repo/blob/:ref[/:path]
-  app.get(/^\/([^\/]+)\/blob\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
+  // GET /:repo/raw/:ref[/:path]
+  app.get(/^\/([^\/]+)\/(blob|raw)\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
     var repo = db.repoFromName[name];
     if (repo === undefined) {
@@ -272,17 +274,18 @@ function createApp(opts, config) {
       return;
     }
 
-    var refSuffix = req.params[1];
-    var path = pathFromRouteParam(req.params[2]);
+    var mode = req.params[1];
+    var refSuffix = req.params[2];
+    var path = pathFromRouteParam(req.params[3]);
 
     // Breadcrumbs.
     var breadcrumbs = [{name: Path.basename(path)}];
     var dir = path;
     while (dir) {
-      dir = dir.slice(0, dir.lastIndexOf('/'));
       if (dir.lastIndexOf('/') == -1) {
         break;
       }
+      dir = dir.slice(0, dir.lastIndexOf('/'));
       breadcrumbs.push({
         name: Path.basename(dir),
         href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
@@ -311,14 +314,35 @@ function createApp(opts, config) {
         res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
         return;
       }
-      if (looksLikeUtf8(obj.blob.data)) {
-        //TODO:XXX guard against failure later in document
-        view.text = decodeURIComponent(escape(obj.blob.data));
+      //TODO: ?
+      //X-Hub-Blob-Mode:100644
+      //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
+      //X-Hub-Blob-Size:1288
+      //X-Hub-Blob-Type:image/gif
+
+      var llUtf8 = looksLikeUtf8(obj.blob.data);
+      if (mode === "raw") {
+        res.header("Content-Length", obj.blob.data.length)
+        res.header("X-Content-Type-Options", "nosniff")
+        if (llUtf8) {
+          res.header("Content-Type", "text/plain; charset=utf-8")
+        } else {
+          var mimetype = mime.lookup(path);
+          var charset = mime.charsets.lookup(mimetype);
+          res.setHeader('Content-Type', mimetype + (charset ? '; charset=' + charset : ''));
+        }
+        res.end(obj.blob.data, "binary");
       } else {
-        //TODO:XXX
-        warn("XXX nope, not utf8")
+        //warn(req)
+        view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
+        var mimetype = mime.lookup(path);
+        view.isImage = (mimetype.slice(0, 'image/'.length) === 'image/')
+        if (llUtf8) {
+          //TODO:XXX guard against decode failure later in document
+          view.text = decodeURIComponent(escape(obj.blob.data));
+        }
+        mustacheResponse(res, "blob.mustache", view);
       }
-      mustacheResponse(res, "blob.mustache", view);
     })
   });
 
