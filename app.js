@@ -193,7 +193,7 @@ function createApp(opts, config) {
 
   // GET /:repo
   // GET /:repo/tree/:ref[/:path]
-  app.get(/^\/([^\/]+)(\/tree\/([^\/\n]+)(\/.*?)?)?$/, function(req, res) {
+  app.get(/^\/([^\/]+)(\/|\/tree\/([^\/\n]+)(\/.*?)?)?$/, function(req, res) {
     var name = req.params[0];
     var repo = db.repoFromName[name];
     if (repo === undefined) {
