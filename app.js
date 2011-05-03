@@ -42,7 +42,8 @@ var chain = chaingang.create({workers: 3})
 
 const MUSTACHE_VIEW_DEBUG = false;
 var templatesDir = __dirname + '/templates';
-var templatePartials = null;
+var templatePartials;
+var defaultView;
 
 
 
@@ -233,14 +234,19 @@ function createApp(opts, config) {
       repository: repo,
       breadcrumbs: breadcrumbs
     }
+    if (path) {
+      view.title = path + " (" + repo.name + ") \u2014 " + config.name;
+    } else {
+      view.title = repo.name + " \u2014 " + config.name;
+    }
     //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
     var refString = 'refs/heads/'+refSuffix
     getGitObject(repo, refString, path, function(err, obj) {
       if (err) {
-        mustacheResponse(res, "500.mustache", {
-          error: "Error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
-          details: JSON.stringify(err, null, 2)
-        }, 500)
+        mustache500Response(res,
+          "Error getting git object: repo='" + repo.name +
+            "' ref='" + refString + "' path='" + path + "'",
+          JSON.stringify(err, null, 2));
         return
       }
       //TODO: redir to blob if not a tree
@@ -296,6 +302,7 @@ function createApp(opts, config) {
     breadcrumbs.reverse();
     
     var view = {
+      title: path + " (" + repo.name + ") \u2014 " + config.name,
       repository: repo,
       breadcrumbs: breadcrumbs
     }
@@ -303,10 +310,10 @@ function createApp(opts, config) {
     var refString = 'refs/heads/'+refSuffix
     getGitObject(repo, refString, path, function(err, obj) {
       if (err) {
-        mustacheResponse(res, "500.mustache", {
-          error: "Error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
-          details: JSON.stringify(err, null, 2)
-        }, 500)
+        mustache500Response(res,
+          "Error getting git object: repo='" + repo.name +
+            "' ref='" + refString + "' path='" + path + "'",
+          JSON.stringify(err, null, 2));
         return
       }
       
@@ -693,6 +700,15 @@ function pathFromRouteParam(param) {
 }
 
 
+function mustache500Response(res, error, details /* =null */) {
+  if (details === undefined) { details = null; }
+  mustacheResponse(res, "500.mustache", {
+    title: "Server Error \u2014 " + config.name,
+    error: error,
+    details: details
+  })
+}
+
 function mustache404Response(res, path) {
   mustacheResponse(res, "404.mustache", {path: path}, 404);
 }
@@ -716,6 +732,12 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
 {
   if (!status) { status = 200; }
   if (debug === undefined) { debug = null; }
+  
+  Object.keys(defaultView).map(function(key) {
+    if (view[key] === undefined) {
+      view[key] = defaultView[key];
+    }
+  });
   
   fs.readFile(templatesDir + '/' + templatePath, 'utf-8', function(err, template) {
     if (err) {
@@ -948,13 +970,18 @@ function internalMainline(argv) {
   createDataArea(config);
   db.load();
 
+  // Template setup.
   templatePartials = {};
   fs.readdirSync(templatesDir + "/partials").map(function(f) {
     var path = templatesDir + "/partials/" + f;
     var name = Path.basename(f);
     name = name.slice(0, name.lastIndexOf('.'));
     templatePartials[name] = fs.readFileSync(path, 'utf-8');
-  })
+  });
+  defaultView = {
+    title: config.name,
+    name: config.name
+  };
 
   var app = createApp(opts, config);
   app.listen(config.port, config.host);

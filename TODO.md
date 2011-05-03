@@ -1,5 +1,3 @@
-- 'name' config var in header
-- <title>
 - non-default branch. tags.
 - test cases!
 - nicer code block styling: line numbers
