@@ -1,3 +1,5 @@
+{{> top }}
+
 {{#repository}}
 <h1>{{ name }}</h1>
 {{/repository}}
@@ -14,7 +16,5 @@
 {{/entries}}
 </ul>
 
-<!-- TODO: debug partial with debug info {{!<debug}} -->
-<pre id="debug">
-{{ debug }}
-</pre>
+{{> bottom }}
+

@@ -1,5 +1,5 @@
-- 'http://0.0.0.0:3333/dsapi/' breakage: 404
-- basic styles
+- 'name' config var in header
+- <title>
 - non-default branch. tags.
 - test cases!
 - nicer code block styling: line numbers

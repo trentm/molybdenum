@@ -40,9 +40,9 @@ var config = null;
 var db;  // see "Database" below
 var chain = chaingang.create({workers: 3})
 
-const MUSTACHE_VIEW_DEBUG = true;
+const MUSTACHE_VIEW_DEBUG = false;
 var templatesDir = __dirname + '/templates';
-
+var templatePartials = null;
 
 
 
@@ -188,7 +188,7 @@ function createApp(opts, config) {
       repositories: _(db.repoFromName).chain()
         .values().sortBy(function (r) { return r.name }).value()
     };
-    mustacheResponse(res, "index.mustache", view)
+    mustacheResponse(res, "index.mustache", view);
   });
 
   // GET /:repo
@@ -697,12 +697,23 @@ function mustache404Response(res, path) {
   mustacheResponse(res, "404.mustache", {path: path}, 404);
 }
 
-// Render the given template path and responding with that.
-//
-// If the global 'MUSTACHE_VIEW_DEBUG === true' or the 'debug' argument is
-// true, then a `debug` variable is added to the view. It is a JSON repr
-// of the `view`. You may use `debug === false` to override the global.
-function mustacheResponse(res, templatePath, view, status /* =200 */, debug /* =null */) {
+/**
+ * Render the given template path and responding with that.
+ *
+ * If the global 'MUSTACHE_VIEW_DEBUG === true' or the 'debug' argument is
+ * true, then a `debug` variable is added to the view. It is a JSON repr
+ * of the `view`. You may use `debug === false` to override the global.
+ *
+ * @param res {Response}
+ * @param templatePath {String} path to template file, relative to `templatesDir`.
+ * @param view {Object} View object used in mustache template rendering
+ * @param status {Integer} HTTP status. Optional (default 200).
+ * @param debug {Boolean} Override MUSTACHE_VIEW_DEBUG setting for this
+ *  rendering.
+ */
+function mustacheResponse(res, templatePath, view, status /* =200 */,
+    debug /* =null */)
+{
   if (!status) { status = 200; }
   if (debug === undefined) { debug = null; }
   
@@ -728,7 +739,7 @@ function mustacheResponse(res, templatePath, view, status /* =200 */, debug /* =
     res.writeHead(status, {
       "Content-Type": "text/html"
     })
-    res.end(Mustache.to_html(template, view));
+    res.end(Mustache.to_html(template, view, templatePartials));
   });
 }
 
@@ -934,8 +945,16 @@ function internalMainline(argv) {
 
   // Setup
   var pidFile = createPidFile(config);
-  dataDir = createDataArea(config);
+  createDataArea(config);
   db.load();
+
+  templatePartials = {};
+  fs.readdirSync(templatesDir + "/partials").map(function(f) {
+    var path = templatesDir + "/partials/" + f;
+    var name = Path.basename(f);
+    name = name.slice(0, name.lastIndexOf('.'));
+    templatePartials[name] = fs.readFileSync(path, 'utf-8');
+  })
 
   var app = createApp(opts, config);
   app.listen(config.port, config.host);
