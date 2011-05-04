@@ -87,7 +87,7 @@ function createApp(opts, config) {
       res.sendfile(__dirname + "/docs/api.json");
     }
   });
-  
+
   app.get('/api/repos', function(req, res) {
     jsonResponse(res, {repositories: _.values(db.repoFromName)});
   });
@@ -124,8 +124,33 @@ function createApp(opts, config) {
     jsonResponse(res, {repository: repo});
   });
   
-  // GET /api/repos/:repo/ref/:ref[/:path]
-  app.get(/^\/api\/repos\/([^\/]+)\/ref\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
+  // GET /api/repos/:repo/refs
+  app.get('/api/repos/:repo/refs', function(req, res) {
+    var repo = db.repoFromName[req.params.repo];
+    if (repo === undefined) {
+      jsonResponse(res, {
+        error: {
+          message: "no such repo: '"+req.params.repo+"'",
+          code: 404
+        }
+      }, 404);
+    } else {
+      repo.refs(function(err, refs) {
+        if (err) {
+          jsonErrorResponse(res, "error getting refs for repo: '"+name+"'",
+            500, err);
+          return;
+        }
+        //TODO: XXX START HERE:
+        // also add parsed values -> branches and tags keys
+        // caching of listRefs on the repo until a fetch
+        jsonResponse(res, {refs: refs});
+      })
+    }
+  });
+  
+  // GET /api/repos/:repo/refs/:ref[/:path]
+  app.get(/^\/api\/repos\/([^\/]+)\/refs\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
     var refSuffix = req.params[1];
     var path = pathFromRouteParam(req.params[2]);
@@ -133,7 +158,8 @@ function createApp(opts, config) {
     // 1. Determine the repo.
     var repo = db.repoFromName[name];
     if (repo === undefined) {
-      return jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
+      jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
+      return;
     }
     //TODO:XXX: handle the repo still cloning.
     
@@ -151,7 +177,7 @@ function createApp(opts, config) {
       } else {
         refString = 'refs/heads/' + refSuffix;
       }
-      
+
       // 3. Get the data for this repo, refString and path.
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
@@ -383,7 +409,7 @@ db = (function() {
   }
   
   Repository.prototype.refs = function refs(callback) {
-    //TODO: cache these?
+    //TODO: cache these
     this.api.listReferences(gitteh.GIT_REF_LISTALL, callback);
   }
   Repository.prototype.tags = function tags(callback) {
@@ -571,6 +597,28 @@ function getGitObject(repo, refString, path, callback) {
     });
   }
   
+  function onTagRef(tagRef) {
+    repo.api.getTag(tagRef.target, function(err, tag) {
+      if (err) {
+        callback({
+          error: "error getting tag '"+tagRef.target+"'",
+          details: err
+        });
+        return;
+      }
+      //warn(sys.inspect(tag))
+      if (tag.targetType === 'commit') {
+        onCommitRef({target: tag.targetId})
+      } else {
+        callback({
+          error: "unknown tag targetType, '" + tag.targetType +
+            "', for tag ref '" + tagRef.target + "'"
+        });
+        return;
+      }
+    });
+  }
+  
   function onRef(err, ref) {
     if (err) {
       callback({
@@ -580,7 +628,11 @@ function getGitObject(repo, refString, path, callback) {
       return;
     }
     if (ref.type === gitteh.GIT_REF_OID) {
-      onCommitRef(ref);
+      if (ref.name.slice(0, "refs/tags/".length) === "refs/tags/") {
+        onTagRef(ref);
+      } else {
+        onCommitRef(ref);
+      }
     } else if (ref.type === gitteh.GIT_REF_SYMBOLIC) {
       ref.resolve(onRef);
     } else {

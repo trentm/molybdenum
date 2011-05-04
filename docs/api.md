@@ -34,7 +34,8 @@ you are reading).
           "ref": $ref
         }
     GET /api/repos/:repo
-    GET /api/repos/:repo/ref/:ref/:path
+    GET /api/repos/:repo/refs
+    GET /api/repos/:repo/refs/:ref/:path
         GET /api/repos/eol/ref/master/README.md
         {
             "ref": "refs/heads/master",
@@ -46,7 +47,7 @@ you are reading).
             }
         }
         ...OR...
-        GET /api/repos/eol/ref/master/lib
+        GET /api/repos/eol/refs/master/lib
         {
             "ref": "refs/heads/master",
             "path": "lib",

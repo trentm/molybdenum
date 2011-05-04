@@ -1,5 +1,11 @@
 - non-default branch. tags.
+    GET /api/repos/:repo/ref/:ref/:path
+        -> GET /api/repos/:repo/refs/:ref/:path
+    GET /api/repos/:repo/refs
 - test cases!
+- package.json with deps
+
+- update docs (api doc, sitemap)
 - nicer code block styling: line numbers
 - nicer code block styling: syntax coloring
 - nicer code block styling: #L12-L20 support
