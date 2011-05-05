@@ -74,7 +74,6 @@ function createApp(opts, config) {
 
 
   //-- API Routes.
-  
   app.get('/api', function(req, res) {
     var accept = req.header("Accept");
     if (accept && (accept.search("application/xhtml+xml") != -1
@@ -86,6 +85,10 @@ function createApp(opts, config) {
       res.header("Content-Type", "application/json")
       res.sendfile(__dirname + "/docs/api.json");
     }
+  });
+  
+  app.get('/api/ping', function(req, res) {
+    jsonResponse(res, {"ping": "pong"});
   });
 
   app.get('/api/repos', function(req, res) {
