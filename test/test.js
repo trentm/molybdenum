@@ -105,11 +105,41 @@ var testData = {
       test.done();
     });
   },
+  //TODO: on a project with a branch
 
   //"GET /api/repos/:repo/refs/:ref/:path": function(test) {
   //  //TODO
   //  test.done();
   //}
+  
+  //TODO: all the other non-api endpoints
+  
+  "GET /:repo/tree/:ref  # tag": function(test) {
+    request({uri:'http://localhost:3334/eol/tree/0.7.2'}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      test.ok(body.indexOf("/eol/tree/0.7.2/lib") != -1)
+      test.ok(body.indexOf("/eol/blob/0.7.2/.gitignore") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/tree/:ref/:path  # tag": function(test) {
+    request({uri:'http://localhost:3334/eol/tree/0.7.2/lib'}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      test.ok(body.indexOf("/eol/blob/0.7.2/lib/eol.py") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/blob/:ref/:path  # tag": function(test) {
+    request({uri:'http://localhost:3334/eol/blob/0.7.2/lib/eol.py'}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      test.ok(body.indexOf("/eol/raw/0.7.2/lib/eol.py") != -1)
+      test.ok(body.indexOf("#!/usr/bin/env python") != -1)
+      test.done();
+    });
+  }
 };
 
 if (process.env.TEST_ONLY !== undefined) {
@@ -120,4 +150,4 @@ if (process.env.TEST_ONLY !== undefined) {
     }
   });
 }
-exports['api'] = testCase(testData);
+exports['test'] = testCase(testData);

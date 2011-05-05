@@ -1,23 +1,18 @@
-- non-default branch. tags.
-    GET /api/repos/:repo/ref/:ref/:path
-        -> GET /api/repos/:repo/refs/:ref/:path
-    GET /api/repos/:repo/refs
-- test cases!
+- UI for selecting non-default branch. tags.
 - package.json with deps
-
-- update docs (api doc, sitemap)
 - nicer code block styling: line numbers
 - nicer code block styling: syntax coloring
 - nicer code block styling: #L12-L20 support
+- update docs (api doc, sitemap)
+- write the post-receive
+- deploy to joyent.no.de. Just json, eol, python-markdown2, restdown and a test repo.
+- https for joyent.no.de
 - GET /:repo/commit/:id
 - GET /:repo/commits/:ref
 - GET /:repo/blame/:ref/:path
 - GET /:repo/commits/:ref/:path
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
-- write the post-receive
-- deploy to joyent.no.de. Just json, eol, python-markdown2, restdown and a test repo.
-- https for joyent.no.de
 - 'hub' client?
 - restify (not until regex routing)
 - https://github.com/janl/mustache.js/issues/48

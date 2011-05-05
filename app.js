@@ -89,7 +89,8 @@ function createApp(opts, config) {
   });
 
   app.get('/api/repos', function(req, res) {
-    jsonResponse(res, {repositories: _.values(db.repoFromName)});
+    jsonResponse(res, {repositories: _.values(db.repoFromName)}, 200,
+      jsonReplacerExcludeInternalKeys);
   });
   app.get('/api/repos/:repo', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
@@ -101,7 +102,8 @@ function createApp(opts, config) {
         }
       }, 404);
     } else {
-      jsonResponse(res, {repository: repo});
+      jsonResponse(res, {repository: repo}, 200,
+        jsonReplacerExcludeInternalKeys);
     }
   });
   app.post('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
@@ -121,7 +123,8 @@ function createApp(opts, config) {
       || db.addRepo(data.repository.name, data.repository.url);
     repo.fetch();
 
-    jsonResponse(res, {repository: repo});
+    jsonResponse(res, {repository: repo}, 200,
+      jsonReplacerExcludeInternalKeys);
   });
   
   // GET /api/repos/:repo/refs
@@ -141,9 +144,6 @@ function createApp(opts, config) {
             500, err);
           return;
         }
-        //TODO: XXX START HERE:
-        // also add parsed values -> branches and tags keys
-        // caching of listRefs on the repo until a fetch
         jsonResponse(res, {refs: refs});
       })
     }
@@ -164,18 +164,22 @@ function createApp(opts, config) {
     //TODO:XXX: handle the repo still cloning.
     
     // 2. Determine the full ref string.
-    repo.tags(function(err, tags) {
+    repo.refs(function(err, refs, branches, tags) {
       if (err) {
-        return jsonErrorResponse(res,
+        jsonErrorResponse(res,
           "error getting tags for repo '"+repo.name+"'", 500, err);
+        return;
       }
       var refString;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
       if (tags.indexOf(refSuffix) != -1) {
         refString = 'refs/tags/' + refSuffix;
-      } else {
+      } else if (branches.indexOf(refSuffix) != -1) {
         refString = 'refs/heads/' + refSuffix;
+      } else {
+        jsonErrorResponse(res, "unknown branch or tag: '"+refSuffix+"'", 404);
+        return;
       }
 
       // 3. Get the data for this repo, refString and path.
@@ -228,7 +232,7 @@ function createApp(opts, config) {
       return;
     }
 
-    var defaultBranch = 'master'; //TODO: how to determine default branch?
+    var defaultBranch = 'master'; //TODO: how to determine default branch? look at libgit2 (different default branch)
     var refSuffix = req.params[2];
     var path = pathFromRouteParam(req.params[3]);
     if (path === '' && refSuffix === defaultBranch) {
@@ -265,35 +269,52 @@ function createApp(opts, config) {
     } else {
       view.title = repo.name + " \u2014 " + config.name;
     }
-    //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
-    var refString = 'refs/heads/'+refSuffix
-    getGitObject(repo, refString, path, function(err, obj) {
+
+    repo.refs(function(err, refs, branches, tags) {
       if (err) {
-        mustache500Response(res,
-          "Error getting git object: repo='" + repo.name +
-            "' ref='" + refString + "' path='" + path + "'",
-          JSON.stringify(err, null, 2));
-        return
-      }
-      //TODO: redir to blob if not a tree
-      if (obj.tree === undefined && obj.blob !== undefined) {
-        res.redirect('/'+name+'/blob/'+refSuffix+'/'+path);
+        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
         return;
       }
-      view.entries = _(obj.tree.entries).chain()
-        .map(function(e) {
-          var isDir = S_ISDIR(e.attributes);
-          return {
-            name: e.name,
-            isDir: isDir,
-            href: '/' + repo.name + '/' + (isDir ? "tree" : "blob")
-              + '/' + refSuffix + (path ? '/'+path : '') + '/' + e.name
-          }
-        })
-        .sortBy(function(e) { return [!e.isDir, e.name] })
-        .value();
-      mustacheResponse(res, "tree.mustache", view);
-    })
+      var refString;
+      // If there is a tag and head with the same name, the tag wins here.
+      // TODO: is that reasonable?
+      if (tags.indexOf(refSuffix) != -1) {
+        refString = 'refs/tags/' + refSuffix;
+      } else if (branches.indexOf(refSuffix) != -1) {
+        refString = 'refs/heads/' + refSuffix;
+      } else {
+        mustache404Response(res, req.path);
+        return;
+      }
+
+      getGitObject(repo, refString, path, function(err, obj) {
+        if (err) {
+          mustache500Response(res,
+            "Error getting git object: repo='" + repo.name +
+              "' ref='" + refString + "' path='" + path + "'",
+            JSON.stringify(err, null, 2));
+          return
+        }
+        //TODO: redir to blob if not a tree
+        if (obj.tree === undefined && obj.blob !== undefined) {
+          res.redirect('/'+name+'/blob/'+refSuffix+'/'+path);
+          return;
+        }
+        view.entries = _(obj.tree.entries).chain()
+          .map(function(e) {
+            var isDir = S_ISDIR(e.attributes);
+            return {
+              name: e.name,
+              isDir: isDir,
+              href: '/' + repo.name + '/' + (isDir ? "tree" : "blob")
+                + '/' + refSuffix + (path ? '/'+path : '') + '/' + e.name
+            }
+          })
+          .sortBy(function(e) { return [!e.isDir, e.name] })
+          .value();
+        mustacheResponse(res, "tree.mustache", view);
+      });
+    });
   });
   
   // GET /:repo/blob/:ref[/:path]
@@ -332,51 +353,68 @@ function createApp(opts, config) {
       repository: repo,
       breadcrumbs: breadcrumbs
     }
-    //TODO: handle proper ref (might be tag) from repo.branchesAndTags result
-    var refString = 'refs/heads/'+refSuffix
-    getGitObject(repo, refString, path, function(err, obj) {
+    
+    repo.refs(function(err, refs, branches, tags) {
       if (err) {
-        mustache500Response(res,
-          "Error getting git object: repo='" + repo.name +
-            "' ref='" + refString + "' path='" + path + "'",
-          JSON.stringify(err, null, 2));
-        return
-      }
-      
-      if (obj.blob === undefined && obj.tree !== undefined) {
-        res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
+        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
         return;
       }
-      //TODO: ?
-      //X-Hub-Blob-Mode:100644
-      //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
-      //X-Hub-Blob-Size:1288
-      //X-Hub-Blob-Type:image/gif
-
-      var llUtf8 = looksLikeUtf8(obj.blob.data);
-      if (mode === "raw") {
-        res.header("Content-Length", obj.blob.data.length)
-        res.header("X-Content-Type-Options", "nosniff")
-        if (llUtf8) {
-          res.header("Content-Type", "text/plain; charset=utf-8")
-        } else {
-          var mimetype = mime.lookup(path);
-          var charset = mime.charsets.lookup(mimetype);
-          res.setHeader('Content-Type', mimetype + (charset ? '; charset=' + charset : ''));
-        }
-        res.end(obj.blob.data, "binary");
+      var refString;
+      // If there is a tag and head with the same name, the tag wins here.
+      // TODO: is that reasonable?
+      if (tags.indexOf(refSuffix) != -1) {
+        refString = 'refs/tags/' + refSuffix;
+      } else if (branches.indexOf(refSuffix) != -1) {
+        refString = 'refs/heads/' + refSuffix;
       } else {
-        //warn(req)
-        view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
-        var mimetype = mime.lookup(path);
-        view.isImage = (mimetype.slice(0, 'image/'.length) === 'image/')
-        if (llUtf8) {
-          //TODO:XXX guard against decode failure later in document
-          view.text = decodeURIComponent(escape(obj.blob.data));
-        }
-        mustacheResponse(res, "blob.mustache", view);
+        mustache404Response(res, req.path);
+        return;
       }
-    })
+    
+      getGitObject(repo, refString, path, function(err, obj) {
+        if (err) {
+          mustache500Response(res,
+            "Error getting git object: repo='" + repo.name +
+              "' ref='" + refString + "' path='" + path + "'",
+            JSON.stringify(err, null, 2));
+          return
+        }
+        
+        if (obj.blob === undefined && obj.tree !== undefined) {
+          res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
+          return;
+        }
+        //TODO: ?
+        //X-Hub-Blob-Mode:100644
+        //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
+        //X-Hub-Blob-Size:1288
+        //X-Hub-Blob-Type:image/gif
+  
+        var llUtf8 = looksLikeUtf8(obj.blob.data);
+        if (mode === "raw") {
+          res.header("Content-Length", obj.blob.data.length)
+          res.header("X-Content-Type-Options", "nosniff")
+          if (llUtf8) {
+            res.header("Content-Type", "text/plain; charset=utf-8")
+          } else {
+            var mimetype = mime.lookup(path);
+            var charset = mime.charsets.lookup(mimetype);
+            res.setHeader('Content-Type', mimetype + (charset ? '; charset=' + charset : ''));
+          }
+          res.end(obj.blob.data, "binary");
+        } else {
+          //warn(req)
+          view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
+          var mimetype = mime.lookup(path);
+          view.isImage = (mimetype.slice(0, 'image/'.length) === 'image/')
+          if (llUtf8) {
+            //TODO:XXX guard against decode failure later in document
+            view.text = decodeURIComponent(escape(obj.blob.data));
+          }
+          mustacheResponse(res, "blob.mustache", view);
+        }
+      });
+    });
   });
 
   return app;
@@ -406,29 +444,33 @@ db = (function() {
     this.isFetchPending = false;
     this.numActiveFetches = 0;
     this._apiCache = null;
+    this._cache = {};
   }
   
+  /**
+   * Get the refs for this repo. Calls the callback with:
+   *    error, refs, branches, tags
+   */
   Repository.prototype.refs = function refs(callback) {
-    //TODO: cache these
-    this.api.listReferences(gitteh.GIT_REF_LISTALL, callback);
-  }
-  Repository.prototype.tags = function tags(callback) {
-    var PREFIX = "refs/tags/";
-    this.refs(function(err, refs) {
-      if (err) { callback(err) }
-      refs = refs.filter(function(s) { return s.slice(0, PREFIX.length) === PREFIX });
-      refs = refs.map(function(s) { return s.slice(PREFIX.length) });
-      callback(null, refs);
-    });
-  }
-  Repository.prototype.branches = function branches(callback) {
-    var PREFIX = "refs/heads/";
-    this.refs(function(err, refs) {
-      if (err) { callback(err) }
-      refs = refs.filter(function(s) { return s.slice(0, PREFIX.length) === PREFIX });
-      refs = refs.map(function(s) { return s.slice(PREFIX.length) });
-      callback(null, refs);
-    });
+    if (this._cache.refsInfo) {
+      callback.apply(null, this._cache.refsInfo);
+    } else {
+      var this_ = this;
+      this.api.listReferences(gitteh.GIT_REF_LISTALL, function(err, refs) {
+        if (err) { callback(err) }
+
+        var TAGS_PREFIX = "refs/tags/";
+        var tags = refs.filter(function(s) { return s.slice(0, TAGS_PREFIX.length) === TAGS_PREFIX });
+        tags = tags.map(function(s) { return s.slice(TAGS_PREFIX.length) });
+
+        var HEADS_PREFIX = "refs/heads/";
+        var branches = refs.filter(function(s) { return s.slice(0, HEADS_PREFIX.length) === HEADS_PREFIX });
+        var branches = branches.map(function(s) { return s.slice(HEADS_PREFIX.length) });
+
+        var refsInfo = this_._cache.refsInfo = [null, refs, branches, tags];
+        callback.apply(null, refsInfo);
+      });
+    }
   }
   
   Repository.prototype.__defineGetter__("api", function() {
@@ -443,6 +485,7 @@ db = (function() {
     // We use a task name "clone:$repo_name" to ensure that there is
     // only ever one clone task for a given repo.
     chain.add(cloneRepoTask(this_), "clone:"+this.name, function(err) {
+      this._cache = {};
       log("Finished clone task (repository '"+this_.name+"').");
       if (this_.isFetchPending) {
         this_.fetch();
@@ -459,6 +502,7 @@ db = (function() {
       this.numActiveFetches += 1;
       var this_ = this;
       chain.add(fetchRepoTask(this), null, function(err) {
+        this._cache = {};
         log("Finished fetch task (repository '"+this_.name+"').");
         this_.numActiveFetches -= 1;
       });
@@ -758,7 +802,7 @@ function mustache500Response(res, error, details /* =null */) {
     title: "Server Error \u2014 " + config.name,
     error: error,
     details: details
-  })
+  }, 500)
 }
 
 function mustache404Response(res, path) {
@@ -825,11 +869,12 @@ function jsonErrorResponse(res, message, code, details) {
   return jsonResponse(res, e, code);
 }
 
-function jsonResponse(res, data, status) {
-  if (status === undefined) {
+function jsonResponse(res, data, status /* =200 */, replacer /* =null */) {
+  if (status === undefined || status === null) {
     status = 200;
   }
-  body = JSON.stringify(data, null, 2) + '\n';
+  if (replacer === undefined) { replacer = null; }
+  body = JSON.stringify(data, replacer, 2) + '\n';
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Content-Length': body.length
@@ -837,6 +882,13 @@ function jsonResponse(res, data, status) {
   res.end(body);
 }
 
+function jsonReplacerExcludeInternalKeys(key, value) {
+  if (key && key[0] === '_') {
+    return undefined;
+  } else {
+    return value;
+  }
+}
 
 function printHelp() {
   sys.puts("Usage: node app.js [OPTIONS]");
