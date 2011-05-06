@@ -1,6 +1,5 @@
 - http://0.0.0.0:3333/eol/tree/0.7.3/test 500 error, when switching tags/branches
   should be a better 404
-- UI for selecting non-default branch. tags.
 - package.json with deps
 - nicer code block styling: line numbers
 - nicer code block styling: syntax coloring

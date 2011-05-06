@@ -495,6 +495,7 @@ db = (function() {
       var this_ = this;
       this.api.listReferences(gitteh.GIT_REF_LISTALL, function(err, refs) {
         if (err) { callback(err) }
+        refs.sort();
 
         var TAGS_PREFIX = "refs/tags/";
         var tags = refs.filter(function(s) { return s.slice(0, TAGS_PREFIX.length) === TAGS_PREFIX });
