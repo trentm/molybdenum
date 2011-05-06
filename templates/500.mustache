@@ -1,3 +1,8 @@
+{{> top }}
+<div id="wrapper"> 
+<div id="main">
+
+<!-- TODO:XXX put this in title -->
 <h1>Server Error (500)</h1>
 
 <p>{{ error }}</p>
@@ -8,9 +13,6 @@
 </pre>
 {{/details}}
 
-<!-- TODO: debug partial with debug info -->
-{{#debug}}
-<pre id="debug">
-{{debug}}
-</pre>
-{{/debug}}
+</div> <!-- end of #wrapper -->
+</div> <!-- end of #main -->
+{{> bottom }}

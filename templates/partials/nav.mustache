@@ -1,0 +1,18 @@
+<div id="nav"><div id="nav1"><div id="nav2">
+<ul class="nav">
+  <li>
+    <select onchange="window.location = this.value;">
+      <optgroup label="Branches">
+        {{#branches}}
+        <option value="{{href}}"{{#isCurr}} selected="selected"{{/isCurr}}>Branch: {{name}}</option>
+        {{/branches}}
+      </optgroup>
+      <optgroup label="Tags">
+        {{#tags}}
+        <option value="{{href}}"{{#isCurr}} selected="selected"{{/isCurr}}>Tag: {{name}}</option>
+        {{/tags}}
+      </optgroup>
+    </select>
+  </li>
+</ul>
+</div></div></div>

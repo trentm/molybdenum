@@ -1,4 +1,8 @@
 {{> top }}
+{{> nav }}
+
+<div id="wrapper"> 
+<div id="main">
 
 <h2>
 {{#breadcrumbs}}
@@ -11,6 +15,9 @@
     <li><a href="{{ href }}">{{ name }}{{#isDir}}/{{/isDir}}</a></li>
 {{/entries}}
 </ul>
+
+</div> <!-- end of #wrapper -->
+</div> <!-- end of #main -->
 
 {{> bottom }}
 

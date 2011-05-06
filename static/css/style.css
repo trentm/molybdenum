@@ -226,6 +226,7 @@ ul ul ul { list-style-type: circle; }
   height: 48px;
   background-color: #111;
   color: white;
+  box-shadow: 0px 1px 3px #888;
 }
 #header :link,
 #header :visited,
@@ -248,6 +249,27 @@ ul ul ul { list-style-type: circle; }
   font-size: 24px;
 }
 
+#nav {
+  height: 36px;
+}
+#nav1 {
+  margin: 0 auto;
+  max-width: 950px;
+  position: relative;
+}
+#nav2 {
+  padding: 6px 12px 5px 12px;
+  font-size: 14px;
+}
+ul.nav {
+  padding: 0;
+  margin: 0;
+}
+ul.nav ul,
+ul.nav li {
+  display: inline;
+}
+
 #wrapper {
   margin: 0 auto;
   max-width: 950px;
@@ -264,6 +286,11 @@ ul ul ul { list-style-type: circle; }
 
 body {
   background: url(/img/bg.png) repeat;
+}
+
+#debug {
+  margin: 0 auto;
+  max-width: 90%;
 }
 
 #footer {

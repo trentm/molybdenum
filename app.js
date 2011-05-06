@@ -40,7 +40,7 @@ var config = null;
 var db;  // see "Database" below
 var chain = chaingang.create({workers: 3})
 
-const MUSTACHE_VIEW_DEBUG = false;
+const MUSTACHE_VIEW_DEBUG = true;
 var templatesDir = __dirname + '/templates';
 var templatePartials;
 var defaultView;
@@ -279,17 +279,33 @@ function createApp(opts, config) {
         mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
         return;
       }
-      var refString;
+      var refString, currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
       if (tags.indexOf(refSuffix) != -1) {
         refString = 'refs/tags/' + refSuffix;
+        currTag = refSuffix;
       } else if (branches.indexOf(refSuffix) != -1) {
         refString = 'refs/heads/' + refSuffix;
+        currBranch = refSuffix;
       } else {
         mustache404Response(res, req.path);
         return;
       }
+      view.branches = branches.map(function(b) {
+        return {
+          name: b,
+          href: '/' + repo.name + '/tree/' + b + (path ? '/'+path : ''),
+          isCurr: b===currBranch
+        }
+      });
+      view.tags = tags.map(function(t) {
+        return {
+          name: t,
+          href: '/' + repo.name + '/tree/' + t + (path ? '/'+path : ''),
+          isCurr: t===currTag
+        }
+      });
 
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
@@ -364,16 +380,33 @@ function createApp(opts, config) {
         return;
       }
       var refString;
+      var refString, currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
       if (tags.indexOf(refSuffix) != -1) {
         refString = 'refs/tags/' + refSuffix;
+        currTag = refSuffix;
       } else if (branches.indexOf(refSuffix) != -1) {
         refString = 'refs/heads/' + refSuffix;
+        currBranch = refSuffix;
       } else {
         mustache404Response(res, req.path);
         return;
       }
+      view.branches = branches.map(function(b) {
+        return {
+          name: b,
+          href: '/' + repo.name + '/tree/' + b + (path ? '/'+path : ''),
+          isCurr: b===currBranch
+        }
+      });
+      view.tags = tags.map(function(t) {
+        return {
+          name: t,
+          href: '/' + repo.name + '/tree/' + t + (path ? '/'+path : ''),
+          isCurr: t===currTag
+        }
+      });
     
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
