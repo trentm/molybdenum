@@ -72,6 +72,8 @@ var testData = {
       test.ok(data.refs);
       test.ok(data.refs.indexOf("refs/heads/master") != -1);
       test.ok(data.refs.indexOf("refs/tags/0.7.5") != -1);
+      test.ok(data.branches.indexOf("master") != -1);
+      test.ok(data.tags.indexOf("0.7.2") != -1);
       test.done();
     });
   },

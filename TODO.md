@@ -1,4 +1,3 @@
-- /api/ping in api docs and a test case for it
 - UI for selecting non-default branch. tags.
 - package.json with deps
 - nicer code block styling: line numbers

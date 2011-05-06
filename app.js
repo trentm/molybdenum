@@ -141,13 +141,14 @@ function createApp(opts, config) {
         }
       }, 404);
     } else {
-      repo.refs(function(err, refs) {
+      var data = {};
+      repo.refs(function(err, refs, branches, tags) {
         if (err) {
           jsonErrorResponse(res, "error getting refs for repo: '"+name+"'",
             500, err);
           return;
         }
-        jsonResponse(res, {refs: refs});
+        jsonResponse(res, {refs: refs, branches: branches, tags: tags});
       })
     }
   });
