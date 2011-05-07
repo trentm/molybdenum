@@ -98,12 +98,7 @@ function createApp(opts, config) {
   app.get('/api/repos/:repo', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
     if (repo === undefined) {
-      jsonResponse(res, {
-        error: {
-          message: "no such repo: '"+req.params.repo+"'",
-          code: 404
-        }
-      }, 404);
+      jsonErrorResponse(res, "no such repo: '"+req.params.repo+"'", 404);
     } else {
       jsonResponse(res, {repository: repo}, 200,
         jsonReplacerExcludeInternalKeys);
@@ -134,12 +129,7 @@ function createApp(opts, config) {
   app.get('/api/repos/:repo/refs', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
     if (repo === undefined) {
-      jsonResponse(res, {
-        error: {
-          message: "no such repo: '"+req.params.repo+"'",
-          code: 404
-        }
-      }, 404);
+      jsonErrorResponse(res, "no such repo: '"+req.params.repo+"'", 404);
     } else {
       var data = {};
       repo.refs(function(err, refs, branches, tags) {
@@ -189,10 +179,15 @@ function createApp(opts, config) {
       // 3. Get the data for this repo, refString and path.
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
-          //TODO:XXX 404 if path just not found
-          jsonErrorResponse(res,
-            "error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
-            500, err);
+          // Pattern matching the error string is insane here... but.
+          if (err.error && /'.*?' not found/.test(err.error)) {
+            mustache404Response(res, req.url);
+            jsonErrorResponse(res, "error getting git object")
+          } else {
+            jsonErrorResponse(res,
+              "error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
+              500, err);
+          }
           return;
         }
         if (obj.tree) {
@@ -232,7 +227,7 @@ function createApp(opts, config) {
     var name = req.params[0];
     var repo = db.repoFromName[name];
     if (repo === undefined) {
-      mustache404Response(res, req.path);
+      mustache404Response(res, req.url);
       return;
     }
 
@@ -289,7 +284,7 @@ function createApp(opts, config) {
         refString = 'refs/heads/' + refSuffix;
         currBranch = refSuffix;
       } else {
-        mustache404Response(res, req.path);
+        mustache404Response(res, req.url);
         return;
       }
       view.branches = branches.map(function(b) {
@@ -309,11 +304,16 @@ function createApp(opts, config) {
 
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
-          mustache500Response(res,
-            "Error getting git object: repo='" + repo.name +
-              "' ref='" + refString + "' path='" + path + "'",
-            JSON.stringify(err, null, 2));
-          return
+          // Pattern matching the error string is insane here... but.
+          if (/'.*?' not found/.test(err.error)) {
+            mustache404Response(res, req.url);
+          } else {
+            mustache500Response(res,
+              "Error getting git object: repo='" + repo.name +
+                "' ref='" + refString + "' path='" + path + "'",
+              JSON.stringify(err, null, 2));
+          }
+          return;
         }
         //TODO: redir to blob if not a tree
         if (obj.tree === undefined && obj.blob !== undefined) {
@@ -343,7 +343,7 @@ function createApp(opts, config) {
     var name = req.params[0];
     var repo = db.repoFromName[name];
     if (repo === undefined) {
-      mustache404Response(res, req.path);
+      mustache404Response(res, req.url);
       return;
     }
 
@@ -390,7 +390,7 @@ function createApp(opts, config) {
         refString = 'refs/heads/' + refSuffix;
         currBranch = refSuffix;
       } else {
-        mustache404Response(res, req.path);
+        mustache404Response(res, req.url);
         return;
       }
       view.branches = branches.map(function(b) {
@@ -410,11 +410,16 @@ function createApp(opts, config) {
     
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
-          mustache500Response(res,
-            "Error getting git object: repo='" + repo.name +
-              "' ref='" + refString + "' path='" + path + "'",
-            JSON.stringify(err, null, 2));
-          return
+          // Pattern matching the error string is insane here... but.
+          if (/'.*?' not found/.test(err.error)) {
+            mustache404Response(res, req.url);
+          } else {
+            mustache500Response(res,
+              "Error getting git object: repo='" + repo.name +
+                "' ref='" + refString + "' path='" + path + "'",
+              JSON.stringify(err, null, 2));
+          }
+          return;
         }
         
         if (obj.blob === undefined && obj.tree !== undefined) {
@@ -496,6 +501,7 @@ db = (function() {
       this.api.listReferences(gitteh.GIT_REF_LISTALL, function(err, refs) {
         if (err) { callback(err) }
         refs.sort();
+        refs.reverse();  // latest version number (lexographically) at the top
 
         var TAGS_PREFIX = "refs/tags/";
         var tags = refs.filter(function(s) { return s.slice(0, TAGS_PREFIX.length) === TAGS_PREFIX });

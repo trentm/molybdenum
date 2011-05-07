@@ -141,7 +141,38 @@ var testData = {
       test.ok(body.indexOf("#!/usr/bin/env python") != -1)
       test.done();
     });
-  }
+  },
+  
+  "GET /:repo/blob/:ref/:path  # 404": function(test) {
+    request({uri:'http://localhost:3334/eol/blob/0.7.2x/lib/eol.py'}, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      test.ok(body.indexOf("404") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/blob/:ref/:path  # 404 also": function(test) {
+    request({uri:'http://localhost:3334/eol/blob/0.7.2/lib/doesnotexist.py'}, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      test.ok(body.indexOf("404") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/tree/:ref/:path  # 404": function(test) {
+    request({uri:'http://localhost:3334/eol/tree/0.7.2x/lib'}, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      test.ok(body.indexOf("404") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/tree/:ref/:path  # 404 also": function(test) {
+    request({uri:'http://localhost:3334/eol/tree/0.7.2/doesnotexist'}, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      test.ok(body.indexOf("404") != -1)
+      test.done();
+    });
+  },
+
+  "": {}  // F'ing trailing comma.
 };
 
 if (process.env.TEST_ONLY !== undefined) {
