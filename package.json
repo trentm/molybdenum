@@ -1,0 +1,32 @@
+{
+  "name": "hub",
+  "description": "a source browser for your git repos",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:trentm/hub.git"
+  },
+  "private": true,
+  "contributors": [
+    "Trent Mick <trentm@gmail.com>"
+  ],
+  "dependencies": {
+    "base64": "*",
+    "chain-gang": "*",
+    "gitteh": "*",
+    "mustache.js": "*",
+    "express": "2.3.3",
+    "iniparser": "1.0.3",
+    "mime": "1.2.1",
+    "underscore": "1.1.6"
+  },
+  "scripts": {
+    "start": "node ./app.js"
+  },
+  "devDependencies": {
+    "nodeunit": "0.5",
+    "jshint": "0.1.9",
+    "request": "1.9"
+  }
+}
+
