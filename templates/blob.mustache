@@ -15,7 +15,11 @@
 </div>
 
 {{#text}}
-<pre>{{text}}</pre>
+<table cellpadding="0" cellspacing="0" width="100%" class="code"><tbody><tr>
+<td><pre class="linenums">{{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
+{{/code}}</pre></td>
+<td width="100%"><pre class="codetext">{{#code}}<div class="line" id="LC{{n}}" style="background-color: transparent; ">{{line}}<br/></div>{{/code}}</pre></td>
+</tr></tbody></table>
 {{/text}}
 {{^text}}
 {{#isImage}}

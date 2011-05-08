@@ -40,7 +40,7 @@ var config = null;
 var db;  // see "Database" below
 var chain = chaingang.create({workers: 3})
 
-const MUSTACHE_VIEW_DEBUG = true;
+const MUSTACHE_VIEW_DEBUG = false;
 var templatesDir = __dirname + '/templates';
 var templatePartials;
 var defaultView;
@@ -452,6 +452,9 @@ function createApp(opts, config) {
           if (llUtf8) {
             //TODO:XXX guard against decode failure later in document
             view.text = decodeURIComponent(escape(obj.blob.data));
+            view.code = view.text.split('\n').map(function (line, n) {
+              return {"line": line, "n": n+1}
+            });
           }
           mustacheResponse(res, "blob.mustache", view);
         }

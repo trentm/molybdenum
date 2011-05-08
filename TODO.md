@@ -1,4 +1,3 @@
-- nicer code block styling: line numbers
 - nicer code block styling: syntax coloring
 - nicer code block styling: #L12-L20 support
 - update docs (api doc, sitemap)
