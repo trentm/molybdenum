@@ -452,9 +452,39 @@ function createApp(opts, config) {
           if (llUtf8) {
             //TODO:XXX guard against decode failure later in document
             view.text = decodeURIComponent(escape(obj.blob.data));
-            view.code = view.text.split('\n').map(function (line, n) {
-              return {"line": line, "n": n+1}
+
+            // 'codetext_pre' is the equivalent of this:
+            //    <pre class="codetext">{{#code}}<div class="line" id="LC{{n}}" style="background-color: transparent; ">{{line}}<br/></div>{{/code}}</pre>
+            var bits = ['<pre class="codetext">'];
+            var n = 0;
+            htmlEscape(view.text).split('\n').forEach(function(line) {
+              n += 1;
+              bits.push('<div class="line" id="LC');
+              bits.push(n.toString());
+              bits.push('" style="background-color: transparent;">')
+              bits.push(line);
+              bits.push('<br/></div>');
             });
+            bits.push('</pre>');
+            view.codetext_pre = bits.join('');
+
+            // 'linenums_pre' is the equivalent of this:
+            //    <pre class="linenums">{{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
+            //    {{/code}}</pre>
+            bits = ['<pre class="linenums">'];
+            var linenum_str;
+            for (var i=0; i<n; i++) {
+              linenum_str = (i+1).toString();
+              bits.push('<span id=L');
+              bits.push(linenum_str);
+              bits.push('" rel="#L')
+              bits.push(linenum_str);
+              bits.push('">');
+              bits.push(linenum_str);
+              bits.push('</span>\n');
+            }
+            bits.push('</pre>');
+            view.linenums_pre = bits.join('');
           }
           mustacheResponse(res, "blob.mustache", view);
         }
@@ -781,6 +811,23 @@ function requestBodyMiddleware(req, res, next) {
   req.on('end', function(){
     req.body = data;
     next();
+  });
+}
+
+
+// From mustache.js.
+function htmlEscape(s) {
+  s = String(s === null ? "" : s);
+  return s.replace(/&(?!\w+;)|["'<>\\]/g, function(s) {
+    switch(s) {
+    case "&": return "&amp;";
+    case "\\": return "\\\\";
+    case '"': return '&quot;';
+    case "'": return '&#39;';
+    case "<": return "&lt;";
+    case ">": return "&gt;";
+    default: return s;
+    }
   });
 }
 
