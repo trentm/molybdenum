@@ -475,7 +475,7 @@ function createApp(opts, config) {
             var linenum_str;
             for (var i=0; i<n; i++) {
               linenum_str = (i+1).toString();
-              bits.push('<span id=L');
+              bits.push('<span id="L');
               bits.push(linenum_str);
               bits.push('" rel="#L')
               bits.push(linenum_str);
