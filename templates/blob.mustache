@@ -14,6 +14,56 @@
     <a href="{{rawUrl}}">raw</a>
 </div>
 
+<script src="/js/jquery-1.6.min.js"></script>
+<script>
+$(document).ready(function() {
+  var linesRe = /^#L(\d+)(-(\d+))?$/;
+  function highlightLines(hash) {
+    $(".line[highlight=true]").css("background-color", "transparent");
+    var m = linesRe.exec(document.location.hash);
+    if (m) {
+      var start = Number(m[1]), end = m[3];
+      if (end !== undefined) {
+        end = Number(end);
+        for (var i=start; i<=end; i++) {
+          $("#LC"+i).css("background-color", "#eee8d5").attr("highlight", "true");
+        }
+        $(document).scrollTop($("#LC"+start).position().top + 30);
+      } else {
+        console.log($("#LC"+start))
+        $("#LC"+start).css("background-color", "#eee8d5").attr("highlight", "true");
+      }
+    }
+  }
+  
+  highlightLines();
+  
+  $(".linenums span").mousedown(function(event) {
+    console.log(event);
+    var rel = event.target.getAttribute("rel");
+    var m = linesRe.exec(document.location.hash);
+    if (event.shiftKey && m) {
+      console.log("from "+document.location.hash+" to "+rel)
+      var start = Number(m[1]);
+      var end = Number(event.target.innerText);
+      if (end < start) {
+        var tmp = end;
+        end = start;
+        start = tmp;
+      }
+      if (start === end) {
+        document.location.hash = "L"+start;
+      } else {
+        document.location.hash = "L"+start+"-"+end;
+      }
+      event.preventDefault();
+    } else {
+      document.location.hash = rel;
+    }
+    highlightLines();
+  })
+})
+</script>
 
 {{#text}}
 <table cellpadding="0" cellspacing="0" width="100%" class="code"><tbody><tr>
@@ -26,7 +76,7 @@
 <img src="{{rawUrl}}">
 {{/isImage}}
 {{^isImage}}
-<p>Binary content. <!-- TODO: download link --></p>
+<p>Binary content. (TODO: download link)</p>
 {{/isImage}}
 {{/text}}
 
