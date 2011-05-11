@@ -1,5 +1,4 @@
 - nicer code block styling: syntax coloring
-- nicer code block styling: #L12-L20 support
 - update docs (api doc, sitemap)
 - write the post-receive
 - deploy to joyent.no.de. Just json, eol, python-markdown2, restdown and a test repo.
