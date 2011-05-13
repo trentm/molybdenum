@@ -453,37 +453,22 @@ function createApp(opts, config) {
             //TODO:XXX guard against decode failure later in document
             view.text = decodeURIComponent(escape(obj.blob.data));
 
-            // 'codetext_pre' is the equivalent of this:
-            //    <pre class="codetext">{{#code}}<div class="line" id="LC{{n}}" style="background-color: transparent; ">{{line}}<br/></div>{{/code}}</pre>
-            var bits = ['<pre class="codetext">'];
-            var n = 0;
-            htmlEscape(view.text).split('\n').forEach(function(line) {
-              n += 1;
-              bits.push('<div class="line" id="LC');
-              bits.push(n.toString());
-              bits.push('" style="background-color: transparent;">')
-              bits.push(line);
-              bits.push('<br/></div>');
-            });
-            bits.push('</pre>');
-            view.codetext_pre = bits.join('');
-
             // 'linenums_pre' is the equivalent of this:
-            //    <pre class="linenums">{{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
-            //    {{/code}}</pre>
-            bits = ['<pre class="linenums">'];
-            var linenum_str;
-            for (var i=0; i<n; i++) {
-              linenum_str = (i+1).toString();
+            //    {{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
+            //    {{/code}}
+            bits = [];
+            var lineNumStr;
+            var numLines = view.text.split('\n').length;
+            for (var i=0; i < numLines; i++) {
+              lineNumStr = (i+1).toString();
               bits.push('<span id="L');
-              bits.push(linenum_str);
+              bits.push(lineNumStr);
               bits.push('" rel="#L')
-              bits.push(linenum_str);
+              bits.push(lineNumStr);
               bits.push('">');
-              bits.push(linenum_str);
+              bits.push(lineNumStr);
               bits.push('</span>\n');
             }
-            bits.push('</pre>');
             view.linenums_pre = bits.join('');
           }
           mustacheResponse(res, "blob.mustache", view);

@@ -1,8 +1,11 @@
+- move static stuff to "/static" prefix
 - nicer code block styling: syntax coloring
+    http://google-code-prettify.googlecode.com/svn/trunk/README.html
+    or pygments
 - update docs (api doc, sitemap)
 - write the post-receive
-- deploy to joyent.no.de. Just json, eol, python-markdown2, restdown and a test repo.
-- https for joyent.no.de
+- deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
+- https for head.no.de
 - GET /:repo/commit/:id
 - GET /:repo/commits/:ref
 - GET /:repo/blame/:ref/:path
