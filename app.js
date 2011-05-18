@@ -17,6 +17,7 @@ var fs = require('fs');
 var sys = require('sys');
 var Path = require('path');
 var child_process = require('child_process');
+var assert = require('assert');
 
 var gitteh = require('gitteh');
 var chaingang = require('chain-gang');
@@ -143,6 +144,54 @@ function createApp(opts, config) {
     }
   });
 
+  // GET /api/repos/:repo/commit/:commitish-or-ref
+  app.get('/api/repos/:repo/commit/:id', function(req, res) {
+    // 1. Determine the repo.
+    var repo = db.repoFromName[req.params.repo];
+    if (repo === undefined) {
+      jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
+      return;
+    }
+    //TODO:XXX: handle the repo still cloning.
+
+    // 2. Determine the full ref string.
+    repo.refs(function(err, refs, branches, tags) {
+      if (err) {
+        jsonErrorResponse(res,
+          "error getting refs for repo '"+repo.name+"'", 500, err);
+        return;
+      }
+      var refString;
+      // If there is a tag and head with the same name, the tag wins here.
+      // TODO: is that reasonable?
+      if (tags.indexOf(req.params.id) != -1) {
+        refString = 'refs/tags/' + req.params.id;
+      } else if (branches.indexOf(req.params.id) != -1) {
+        refString = 'refs/heads/' + req.params.id;
+      } else {
+        // Must be a commitish.
+        refString = req.params.id;
+      }
+
+      // 3. Get the data for this repo, refString and path.
+      getGitObject(repo, refString, "commit", null, function(err, commit) {
+        if (err) {
+          // Pattern matching the error string is insane here... but.
+          if (err.error && /'.*?' not found/.test(err.error)) {
+            mustache404Response(res, req.url);
+            jsonErrorResponse(res, "error getting git commit")
+          } else {
+            jsonErrorResponse(res,
+              "error getting git commit: repo='"+repo.name+"' ref='"+refString+"'",
+              500, err);
+          }
+          return;
+        }
+        jsonResponse(res, commit);
+      });
+    });
+  });
+
   // GET /api/repos/:repo/refs/:ref[/:path]
   app.get(/^\/api\/repos\/([^\/]+)\/refs\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
@@ -177,7 +226,7 @@ function createApp(opts, config) {
       }
 
       // 3. Get the data for this repo, refString and path.
-      getGitObject(repo, refString, path, function(err, obj) {
+      getGitObject(repo, refString, "entry", path, function(err, obj) {
         if (err) {
           // Pattern matching the error string is insane here... but.
           if (err.error && /'.*?' not found/.test(err.error)) {
@@ -302,7 +351,7 @@ function createApp(opts, config) {
         }
       });
 
-      getGitObject(repo, refString, path, function(err, obj) {
+      getGitObject(repo, refString, "entry", path, function(err, obj) {
         if (err) {
           // Pattern matching the error string is insane here... but.
           if (/'.*?' not found/.test(err.error)) {
@@ -408,7 +457,7 @@ function createApp(opts, config) {
         }
       });
 
-      getGitObject(repo, refString, path, function(err, obj) {
+      getGitObject(repo, refString, "entry", path, function(err, obj) {
         if (err) {
           // Pattern matching the error string is insane here... but.
           if (/'.*?' not found/.test(err.error)) {
@@ -645,8 +694,18 @@ db = (function() {
  *      "details": optional object with some error details
  *    }
  *
+ * ...
+ * @param type {String} What type of git object to return. Can be one of
+ *    "commit" or "entry". Here "entry" means either a tree or a blob
+ *    is returned depending on what the given `path` param refers to.
+ * @param path {String} The path in a git tree to return. Only used
+ *    if `type === "entry"`.
+ * ...
+ *
  */
-function getGitObject(repo, refString, path, callback) {
+function getGitObject(repo, commitishOrRefString, type, path, callback) {
+  assert.ok(type === "commit" || type === "entry");
+
   function getGitEntry(repo, treeId, pathParts, path) {
     repo.api.getTree(treeId, function(err, tree) {
       if (err) {
@@ -698,8 +757,12 @@ function getGitObject(repo, refString, path, callback) {
         });
         return;
       }
-      var pathParts = (path ? path.split('/') : []);
-      getGitEntry(repo, commit.tree, pathParts, path);
+      if (type === "commit") {
+        callback(null, {commit: commit});
+      } else {
+        var pathParts = (path ? path.split('/') : []);
+        getGitEntry(repo, commit.tree, pathParts, path);
+      }
     });
   }
 
@@ -728,7 +791,7 @@ function getGitObject(repo, refString, path, callback) {
   function onRef(err, ref) {
     if (err) {
       callback({
-        error: "error looking up reference for '"+refString+"'",
+        error: "error looking up reference for '"+commitishOrRefString+"'",
         details: err
       });
       return;
@@ -742,11 +805,17 @@ function getGitObject(repo, refString, path, callback) {
     } else if (ref.type === gitteh.GIT_REF_SYMBOLIC) {
       ref.resolve(onRef);
     } else {
-      callback({error: "Unknown reference type for '"+refString+"': "+ref.type});
+      callback({error: "Unknown reference type for '"+commitishOrRefString+"': "+ref.type});
     }
   }
 
-  repo.api.getReference(refString, onRef);
+  if (commitishOrRefString.indexOf('/') !== -1) {
+    // Looks like a ref string, e.g. "refs/heads/master".
+    repo.api.getReference(refString, onRef);
+  } else {
+    // Looks like a commitish.
+    onCommitRef({target: commitishOrRefString});
+  }
 }
 
 

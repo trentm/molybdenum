@@ -1,7 +1,4 @@
 - move static stuff to "/static" prefix
-- nicer code block styling: syntax coloring
-    http://google-code-prettify.googlecode.com/svn/trunk/README.html
-    or pygments
 - update docs (api doc, sitemap)
 - write the post-receive
 - deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
@@ -27,4 +24,3 @@
         completion of task removes from the fifo
         if the fifo has any items, then the repo is 'busy'
 - make gitteh build on solaris: https://github.com/libgit2/libgit2/pull/138
-
