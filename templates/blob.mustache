@@ -1,7 +1,7 @@
 {{> top }}
 {{> nav }}
 
-<div id="wrapper"> 
+<div id="wrapper">
 <div id="main">
 
 <h2>
@@ -40,15 +40,15 @@
 {{> bottom_scripts }}
 
 {{#text}}
-<link href="/prettify/prettify.css" type="text/css" rel="stylesheet" />
-<script type="text/javascript" src="/prettify/prettify.js"></script>
+<link href="/static/prettify/prettify.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="/static/prettify/prettify.js"></script>
 <script>
 $(document).ready(function() {
   prettyPrint(function() {
     // Transform the prettify innerHTML:
     //    ...
     //    </span><span class="str">"""The eol test suite entry point."""</span><span class="pln">
-    //  
+    //
     //    </span><span class="kwd">import</span><span class="pln"> os
     //    </span>...
     // such that each line has this structure:
@@ -95,7 +95,7 @@ $(document).ready(function() {
     // Remove padding that was just added to avoid jump when
     // '<div class="line">' is added.
     $('pre.codetext:first').css("padding-left", "0");
-  
+
     // Setup for highlighting code lines.
     Hub.highlightCodeLines();
     $(".linenums span").mousedown(Hub.onCodeLineNumMouseDown);
