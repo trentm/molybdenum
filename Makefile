@@ -5,7 +5,7 @@ help:
 	@echo "test: run the test suite"
 
 run:
-	node app.js
+	node_modules/.bin/node-dev app.js
 
 # To setup for using restdown <https://github.com/trentm/restdown>:
 #   git clone git://github.com/trentm/restdown.git
