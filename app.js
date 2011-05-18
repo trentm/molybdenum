@@ -811,7 +811,7 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
 
   if (commitishOrRefString.indexOf('/') !== -1) {
     // Looks like a ref string, e.g. "refs/heads/master".
-    repo.api.getReference(refString, onRef);
+    repo.api.getReference(commitishOrRefString, onRef);
   } else {
     // Looks like a commitish.
     onCommitRef({target: commitishOrRefString});
