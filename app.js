@@ -86,7 +86,7 @@ function createApp(opts, config) {
       res.sendfile(__dirname + "/docs/api.json");
     }
   });
-  
+
   app.get('/api/ping', function(req, res) {
     jsonResponse(res, {"ping": "pong"});
   });
@@ -111,7 +111,7 @@ function createApp(opts, config) {
       jsonErrorResponse(res, "invalid JSON", 400, ex);
       return;
     }
-    
+
     if (!data.repository || !data.repository.url) {
       jsonErrorResponse(res, "no repository URL given", 400);
       return;
@@ -124,7 +124,7 @@ function createApp(opts, config) {
     jsonResponse(res, {repository: repo}, 200,
       jsonReplacerExcludeInternalKeys);
   });
-  
+
   // GET /api/repos/:repo/refs
   app.get('/api/repos/:repo/refs', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
@@ -142,7 +142,7 @@ function createApp(opts, config) {
       })
     }
   });
-  
+
   // GET /api/repos/:repo/refs/:ref[/:path]
   app.get(/^\/api\/repos\/([^\/]+)\/refs\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
@@ -156,7 +156,7 @@ function createApp(opts, config) {
       return;
     }
     //TODO:XXX: handle the repo still cloning.
-    
+
     // 2. Determine the full ref string.
     repo.refs(function(err, refs, branches, tags) {
       if (err) {
@@ -209,10 +209,10 @@ function createApp(opts, config) {
       });
     });
   });
-  
-  
+
+
   //---- HTML Routes
-  
+
   app.get('/', function(req, res) {
     var view = {
       repositories: _(db.repoFromName).chain()
@@ -258,7 +258,7 @@ function createApp(opts, config) {
     }
     breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
     breadcrumbs.reverse();
-    
+
     var view = {
       repository: repo,
       breadcrumbs: breadcrumbs
@@ -336,7 +336,7 @@ function createApp(opts, config) {
       });
     });
   });
-  
+
   // GET /:repo/blob/:ref[/:path]
   // GET /:repo/raw/:ref[/:path]
   app.get(/^\/([^\/]+)\/(blob|raw)\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
@@ -367,13 +367,13 @@ function createApp(opts, config) {
     }
     breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
     breadcrumbs.reverse();
-    
+
     var view = {
       title: path + " (" + repo.name + ") \u2014 " + config.name,
       repository: repo,
       breadcrumbs: breadcrumbs
     }
-    
+
     repo.refs(function(err, refs, branches, tags) {
       if (err) {
         mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
@@ -407,7 +407,7 @@ function createApp(opts, config) {
           isCurr: t===currTag
         }
       });
-    
+
       getGitObject(repo, refString, path, function(err, obj) {
         if (err) {
           // Pattern matching the error string is insane here... but.
@@ -421,7 +421,7 @@ function createApp(opts, config) {
           }
           return;
         }
-        
+
         if (obj.blob === undefined && obj.tree !== undefined) {
           res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
           return;
@@ -431,7 +431,7 @@ function createApp(opts, config) {
         //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
         //X-Hub-Blob-Size:1288
         //X-Hub-Blob-Type:image/gif
-  
+
         var llUtf8 = looksLikeUtf8(obj.blob.data);
         if (mode === "raw") {
           res.header("Content-Length", obj.blob.data.length)
@@ -506,7 +506,7 @@ db = (function() {
     this._apiCache = null;
     this._cache = {};
   }
-  
+
   /**
    * Get the refs for this repo. Calls the callback with:
    *    error, refs, branches, tags
@@ -534,7 +534,7 @@ db = (function() {
       });
     }
   }
-  
+
   Repository.prototype.__defineGetter__("api", function() {
     if (this._apiCache === null) {
       this._apiCache = gitteh.openRepository(this.dir);
@@ -604,7 +604,7 @@ db = (function() {
         this.save();
       }
     },
-    
+
     save: function save() {
       var reposJson = Path.join(config.dataDir, "repos.json");
       var repos = _.map(this.repoFromName,
@@ -612,7 +612,7 @@ db = (function() {
       fs.writeFileSync(reposJson,
         JSON.stringify(repos, null, 2) + '\n');
     },
-    
+
     addRepo: function addRepo(name, url, skipSave /* =false */) {
       var repo = this.repoFromName[name] = new Repository(name, url);
       this.activeFetchesFromRepoName[name] = [];
@@ -688,7 +688,7 @@ function getGitObject(repo, refString, path, callback) {
       }
     });
   }
-  
+
   function onCommitRef(commitRef) {
     repo.api.getCommit(commitRef.target, function(err, commit) {
       if (err) {
@@ -702,7 +702,7 @@ function getGitObject(repo, refString, path, callback) {
       getGitEntry(repo, commit.tree, pathParts, path);
     });
   }
-  
+
   function onTagRef(tagRef) {
     repo.api.getTag(tagRef.target, function(err, tag) {
       if (err) {
@@ -724,7 +724,7 @@ function getGitObject(repo, refString, path, callback) {
       }
     });
   }
-  
+
   function onRef(err, ref) {
     if (err) {
       callback({
@@ -907,13 +907,13 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
 {
   if (!status) { status = 200; }
   if (debug === undefined) { debug = null; }
-  
+
   Object.keys(defaultView).map(function(key) {
     if (view[key] === undefined) {
       view[key] = defaultView[key];
     }
   });
-  
+
   fs.readFile(templatesDir + '/' + templatePath, 'utf-8', function(err, template) {
     if (err) {
       //TODO: 500.mustache and use that for rendering. Include 'err' content.
