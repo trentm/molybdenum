@@ -11,7 +11,7 @@ run:
 #   git clone git://github.com/trentm/restdown.git
 #   export PATH=`pwd`/restdown/bin:$PATH
 docs:
-	restdown -v -m static docs/api.md
+	restdown -v -m static/static docs/api.md
 
 #deploy:
 #	git push production develop:master

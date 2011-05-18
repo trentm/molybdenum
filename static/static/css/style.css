@@ -264,11 +264,11 @@ ul.nav li {
 }
 
 #header {
-  background: url(/img/bg_graph.png) repeat;
+  background: url(/static/img/bg_graph.png) repeat;
 }
 
 body {
-  background: url(/img/bg.png) repeat;
+  background: url(/static/img/bg.png) repeat;
 }
 
 #debug {

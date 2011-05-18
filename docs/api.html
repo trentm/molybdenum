@@ -15,9 +15,9 @@
 <ul>
   <li><a href="#repositories">Repositories</a>
   <ul>
-    <li><a href="#POST-/push"><span class="verb">POST</span> <span>/push</span></a></li>
     <li><a href="#GET-/repos"><span class="verb">GET</span> <span>/repos</span></a></li>
     <li><a href="#GET-/repos/:repo"><span class="verb">GET</span> <span>/repos/:repo</span></a></li>
+    <li><a href="#POST-/repos/:repo"><span class="verb">POST</span> <span>/repos/:repo</span></a></li>
   </ul></li>
   <li><a href="#general">General</a>
   <ul>
@@ -44,16 +44,125 @@
 you are reading).</p>
 
 <!--
+    # JSON
+    GET /api/repos
+    POST /api/repos/:repo
+        {
+          "repository": {
+            "url": $git_clone_url,
+            "name": $name
+          }
+          // The following are optional. Just including the above would be
+          // typical for a POST to create a new repo entry in the hub.
+          "before": $before_sha,
+          "after": $after_sha,
+          "ref": $ref
+        }
     GET /api/repos/:repo
-    GET /api/repos/:repo/tree/:branch/:path
-    GET /api/repos/:repo/blob/:branch/:path
+    GET /api/repos/:repo/refs
+    GET /api/repos/:repo/refs/:ref/:path
+        GET /api/repos/eol/ref/master/README.md
+        {
+            "ref": "refs/heads/master",
+            "path": "README.md",
+            "type": "blob",
+            "blob" {
+                "id": ...
+                "data": ...
+            }
+        }
+        ...OR...
+        GET /api/repos/eol/refs/master/lib
+        {
+            "ref": "refs/heads/master",
+            "path": "lib",
+            "type": "tree",
+            "tree": {
+              "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
+              "entries":
+                 [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
+                     name: 'eol.py',
+                     attributes: 33261 } ]
+            }
+        }
+
+    # HTML
+    GET /:repo
+    GET /:repo/tree/:ref/:path
+    GET /:repo/blob/:ref/:path
+    GET /:repo/raw/:ref/:path
+    GET /:repo/commit/:id
+    GET /:repo/commits/:ref
+
+
 -->
 
 
 </div>
 <h1 id="repositories">Repositories</h1>
 
-<h2 id="POST-/push"><span>POST /push</span></h2>
+<h2 id="GET-/repos"><span>GET /repos</span></h2>
+
+<p>List all repositories currently in the hub. (TODO: add paging)</p>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>curl {{ url }}/api/repos
+</code></pre>
+
+<h4>example response</h4>
+
+<pre><code>{
+  "repositories": [
+    {
+      "name": "eol",
+      "url": "https://github.com/trentm/eol.git",
+      "dir": "/data/hub/repos/eol.git",
+      // Note: The following are internal. Will probably be removed.
+      "isCloned": true,
+      "isFetchPending": false,
+      "numActiveFetches": 0,
+      ...
+    }
+  ]
+}
+</code></pre>
+
+<h2 id="GET-/repos/:repo"><span>GET /repos/:repo</span></h2>
+
+<p>Return info on all current repositories in the hub.</p>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>curl {{ url }}/api/repos/eol
+</code></pre>
+
+<h4>example response</h4>
+
+<pre><code>{
+  "repository": {
+    "name": "eol",
+    "url": "https://github.com/trentm/eol.git",
+    "dir": "/data/hub/repos/eol.git",
+    ...
+  }
+}
+</code></pre>
+
+<h4>failure response</h4>
+
+<pre><code>...
+Status: 404
+
+{
+  "error": {
+    "message": "no such repo: 'asdf'",
+    "code": 404
+  }
+}
+</code></pre>
+
+<h2 id="POST-/repos/:repo"><span>POST /repos/:repo</span></h2>
 
 <p>Let the hub know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -63,14 +172,16 @@ hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://hel
   "repository": {
     "url": $git_clone_url,
     "name": $name
-  }
+  },
+  // These are optional:
   "before": $before_sha,
   "after": $after_sha,
   "ref": $ref
 }
 </code></pre>
 
-<p>TODO: or should this be /repos/:repo/push. Or even just POST/PUT to /repos/:repo.</p>
+<p>At a minimum, only the "repository" key is required, though the other
+fields will be used if given.</p>
 
 <h4>example request</h4>
 
@@ -109,69 +220,6 @@ Status: 400
 }
 </code></pre>
 
-<h2 id="GET-/repos"><span>GET /repos</span></h2>
-
-<p>Return info on all current repositories in the hub.</p>
-
-<h4>example request</h4>
-
-<pre class="shell"><code>curl {{ url }}/api/repos
-</code></pre>
-
-<h4>example response</h4>
-
-<pre><code>{
-  "repositories": [
-    {
-      "name": "eol",
-      "url": "https://github.com/trentm/eol.git",
-      "dir": "/data/hub/repos/eol.git",
-      // Note: The following are internal. Will probably removed.
-      "isCloned": true,
-      "isFetchPending": false,
-      "numActiveFetches": 0
-    }
-  ]
-}
-</code></pre>
-
-<h2 id="GET-/repos/:repo"><span>GET /repos/:repo</span></h2>
-
-<p>Return info on all current repositories in the hub.</p>
-
-<h4>example request</h4>
-
-<pre class="shell"><code>curl {{ url }}/api/repos/eol
-</code></pre>
-
-<h4>example response</h4>
-
-<pre><code>{
-  "repository": {
-    "name": "eol",
-    "url": "https://github.com/trentm/eol.git",
-    "dir": "/data/hub/repos/eol.git",
-    // Note: The following are internal. Will probably removed.
-    "isCloned": true,
-    "isFetchPending": false,
-    "numActiveFetches": 0
-  }
-}
-</code></pre>
-
-<h4>failure response</h4>
-
-<pre><code>...
-Status: 404
-
-{
-  "error": {
-    "message": "no such repo: 'asdf'",
-    "code": 404
-  }
-}
-</code></pre>
-
 <h1 id="general">General</h1>
 
 <h2 id="GET-/"><span>GET /</span></h2>
@@ -183,7 +231,7 @@ on the request "Accept" header.</p>
 
 <pre><code>{
   "endpoints": [
-    "POST   /api/push"
+    ...
   ], 
   "version": "1.0.0"
 }

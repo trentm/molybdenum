@@ -1,8 +1,8 @@
 {
   "endpoints": [
-    "POST /push", 
     "GET /repos", 
     "GET /repos/:repo", 
+    "POST /repos/:repo", 
     "GET /"
   ], 
   "version": "1.0.0"
