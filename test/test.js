@@ -77,7 +77,7 @@ var testData = {
       test.done();
     });
   },
-  
+
   // GET /api/repos/:repo/refs/:ref[/:path]
   "GET /api/repos/:repo/refs/:ref": function(test) {
     request({uri:'http://localhost:3334/api/repos/eol/refs/master'}, function (error, response, body) {
@@ -109,13 +109,86 @@ var testData = {
   },
   //TODO: on a project with a branch
 
+  "GET /api/repos/:repo/commit/:id  # sha1": function(test) {
+    var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915"
+    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      var data = JSON.parse(body);
+      test.ok(data.commit);
+      test.ok(data.commit.tree);
+      test.ok(data.commit.parents);
+      test.equal(data.commit.id, id);
+      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.author.name, "Trent Mick");
+      test.done();
+    });
+  },
+  "GET /api/repos/:repo/commit/:id  # sha1 prefix": function(test) {
+    var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915";
+    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id.slice(0, 8)}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      var data = JSON.parse(body);
+      test.ok(data.commit);
+      test.ok(data.commit.tree);
+      test.ok(data.commit.parents);
+      test.equal(data.commit.id, id);
+      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.author.name, "Trent Mick");
+      test.done();
+    });
+  },
+  "GET /api/repos/:repo/commit/:id  # non-existant sha1": function(test) {
+    var id = "abcdef";
+    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      //log(body)
+      var data = JSON.parse(body);
+      test.ok(data.error);
+      test.ok(/not found/.test(data.error.message));
+      test.equal(data.error.code, 404);
+      test.done();
+    });
+  },
+  "GET /api/repos/:repo/commit/:id  # not head sha1": function(test) {
+    var id = "86fb0c2c2c37e71c218d386cc3f167496ce98c57"
+    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      var data = JSON.parse(body);
+      test.ok(data.commit);
+      test.ok(data.commit.tree);
+      test.ok(data.commit.parents);
+      test.equal(data.commit.id, id);
+      test.equal(data.commit.author.name, "Trent Mick");
+      test.done();
+    });
+  },
+  "GET /api/repos/:repo/commit/:id  # ref": function(test) {
+    var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915"
+    request({uri:'http://localhost:3334/api/repos/eol/commit/master'}, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      var data = JSON.parse(body);
+      test.ok(data.commit);
+      test.ok(data.commit.tree);
+      test.ok(data.commit.parents);
+      test.equal(data.commit.id, id);
+      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.author.name, "Trent Mick");
+      test.done();
+    });
+  },
+  //TODO: on a project with a branch
+
   //"GET /api/repos/:repo/refs/:ref/:path": function(test) {
   //  //TODO
   //  test.done();
   //}
-  
+
   //TODO: all the other non-api endpoints
-  
+
   "GET /:repo/tree/:ref  # tag": function(test) {
     request({uri:'http://localhost:3334/eol/tree/0.7.2'}, function (error, response, body) {
       test.equal(response.statusCode, 200);
@@ -142,7 +215,7 @@ var testData = {
       test.done();
     });
   },
-  
+
   "GET /:repo/blob/:ref/:path  # 404": function(test) {
     request({uri:'http://localhost:3334/eol/blob/0.7.2x/lib/eol.py'}, function (error, response, body) {
       test.equal(response.statusCode, 404);

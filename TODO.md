@@ -1,4 +1,4 @@
-- sha1 *prefix* for /api/repos/:repo/commit/:id:
+- /api/repos/:repo/commit/:id  test cases
 - redis?
 - GET /:repo/commit/:id
 - GET /:repo/commits?page=n
