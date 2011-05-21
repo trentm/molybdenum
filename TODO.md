@@ -1,5 +1,7 @@
+- sha1 *prefix* for /api/repos/:repo/commit/:id:
+- redis?
 - GET /:repo/commit/:id
-- GET /:repo/commits/:ref
+- GET /:repo/commits?page=n
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
 - update docs (api doc, sitemap)
 - write the post-receive

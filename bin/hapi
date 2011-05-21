@@ -26,7 +26,7 @@ fi
 shift;
 
 #XXX hard code for now
-HUB_URL=http://0.0.0.0:3333/api
+HUB_URL=http://0.0.0.0:3333
 
 # Get config/environment data.
 if [[ -z "$HUB_URL" ]]; then

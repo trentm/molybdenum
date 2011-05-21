@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 /* Copyright 2011 (c) Trent Mick.
- * Copyright 2011 (c) Joyent Inc.
  *
  * Hub server -- a tree view for git repos.
  *
@@ -176,10 +175,8 @@ function createApp(opts, config) {
       // 3. Get the data for this repo, refString and path.
       getGitObject(repo, refString, "commit", null, function(err, commit) {
         if (err) {
-          // Pattern matching the error string is insane here... but.
-          if (err.error && /'.*?' not found/.test(err.error)) {
-            mustache404Response(res, req.url);
-            jsonErrorResponse(res, "error getting git commit")
+          if (err.errno == process.ENOENT) {
+            jsonErrorResponse(res, "commit or ref '"+refString+"' not found", 404);
           } else {
             jsonErrorResponse(res,
               "error getting git commit: repo='"+repo.name+"' ref='"+refString+"'",
@@ -230,8 +227,7 @@ function createApp(opts, config) {
         if (err) {
           // Pattern matching the error string is insane here... but.
           if (err.error && /'.*?' not found/.test(err.error)) {
-            mustache404Response(res, req.url);
-            jsonErrorResponse(res, "error getting git object")
+            jsonErrorResponse(res, err.error, 404);
           } else {
             jsonErrorResponse(res,
               "error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
@@ -809,12 +805,22 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
     }
   }
 
+  var sha1Re = /[0-9a-f]{40}/;
   if (commitishOrRefString.indexOf('/') !== -1) {
     // Looks like a ref string, e.g. "refs/heads/master".
     repo.api.getReference(commitishOrRefString, onRef);
-  } else {
-    // Looks like a commitish.
+  } else if (sha1Re.test(commitishOrRefString)) {
+    // Full sha1.
     onCommitRef({target: commitishOrRefString});
+  } else {
+    // Resolve with 'git rev-parse'.
+    gitExec(['rev-parse', commitishOrRefString], repo.dir, function(err, stdout, stderr) {
+      if (err) {
+        callback({error: "Could not resolve '"+commitishOrRefString+"': "+err});
+        return;
+      }
+      onCommitRef({target: stdout.trim()});
+    });
   }
 }
 
@@ -916,11 +922,12 @@ function gitExec(args, gitDir, callback) {
   });
   child.addListener('exit', function (code) {
     if (code > 0) {
-      var err = new Error("git " + fullArgs.join(" ") + "\n" + stderr.join(''));
+      log("gitExec: code "+code+": git " + fullArgs.join(" "));
+      var err = new Error(stderr.join(''));
       if (gitENOENT.test(err.message)) {
         err.errno = process.ENOENT;
       }
-      callback(null, stdout.join(''), stderr.join(''));
+      callback(err, stdout.join(''), stderr.join(''));
       return;
     }
     callback(null, stdout.join(''), stderr.join(''));
