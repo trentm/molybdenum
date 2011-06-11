@@ -1,0 +1,18 @@
+{{#commit}}
+<div class="commit">
+<pre class="commitlinks">{{{links}}}</pre>
+{{#brief}}
+<pre class="commitmessage"><a href="{{href}}">{{message}}</a></pre>
+{{/brief}}
+{{^brief}}
+<pre class="commitmessage">{{message}}</pre>
+{{/brief}}
+{{#author}}
+<div class="commitauthor">
+  <img style="float: left; margin-right: 5px;" class="gravatar" height="30" width="30" src="http://www.gravatar.com/avatar/{{emailMd5}}?s=30"/>
+  {{name}}<br>
+  <span class="committime">{{time}}</span>
+</div>
+{{/author}}
+</div>
+{{/commit}}

@@ -1,6 +1,12 @@
-- /api/repos/:repo/commit/:id  test cases
-- redis?
+
 - GET /:repo/commit/:id
+- redis?
+- need caching and better syntax coloring handling: e.g.
+  http://0.0.0.0:3333/illumos-live/blob/master/usr/src/lib/libzonecfg/common/libzonecfg.c
+  is unbrowsable because of the client-side coloring delay.
+  Easiest would be to just bring syntax coloring back server side but
+  have some serious caching.
+- GET /commit/:id   # redirs to appropriate repo -> cache in redis
 - GET /:repo/commits?page=n
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
 - update docs (api doc, sitemap)
@@ -9,6 +15,7 @@
 - https for head.no.de
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
+- better name. bluelight? no reason. head?
 - 'hub' client?
 - https://github.com/janl/mustache.js/issues/48
     sounds like a good fix to me, but it comes with a little nasty

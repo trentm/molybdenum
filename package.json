@@ -18,7 +18,8 @@
     "express": "2.3.3",
     "iniparser": "1.0.3",
     "mime": "1.2.1",
-    "underscore": "1.1.6"
+    "underscore": "1.1.6",
+    "hashlib": "*"
   },
   "scripts": {
     "start": "node ./app.js"

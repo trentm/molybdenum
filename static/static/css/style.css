@@ -392,6 +392,52 @@ div.line {
 /* ---- page: index */
 
 
+
+/* ---- widget: commit box */
+
+.commit {
+  background: #D2E1FF;
+  border: 1px solid #aaa;
+  position: relative;
+  min-height: 70px;
+}
+.commit pre {
+  border: none;
+  background-color: inherit;
+  padding: 5px;
+  margin: 0;
+}
+.commitmessage {
+  white-space: pre-wrap;
+}
+.commitmessage a,
+.commitmessage a:hover {
+  color: inherit;
+}
+.commitauthor {
+  margin: 10px 5px 5px 5px;
+  font-size: 80%;
+  line-height: 1.4;
+}
+.committime {
+  color: gray;
+}
+img.gravatar {
+  border: 2px solid #ccc;
+  background-color: white;
+  padding: 2px;
+}
+pre.commitlinks {
+  float: right;
+  width: 15em;
+  padding-left: 5px;
+  border-left: 1px solid #aaa;
+  color: #999;
+  font-size: 70%;
+  font-family: Consolas, Monaco, "Lucida Console", "Courier New", monospace;
+}
+
+
 /* ---- larger screens */
 
 @media only screen and (min-width: 481px) {

@@ -24,6 +24,7 @@ var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
 var _ = require('underscore');
 var mime = require('mime');
+var hashlib = require('hashlib');
 
 
 //--- exports for module usage
@@ -35,6 +36,9 @@ exports.main = main;
 
 
 //---- globals && config
+
+var log = console.log;
+var warn = console.warn;
 
 var config = null;
 var db;  // see "Database" below
@@ -377,7 +381,10 @@ function createApp(opts, config) {
           })
           .sortBy(function(e) { return [!e.isDir, e.name] })
           .value();
-        mustacheResponse(res, "tree.mustache", view);
+        if (obj.commit) {
+          viewAddCommit(view, obj.commit, repo.name, true);
+        }
+        mustacheResponse(res, "tree.mustache", view, null, true);
       });
     });
   });
@@ -424,7 +431,6 @@ function createApp(opts, config) {
         mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
         return;
       }
-      var refString;
       var refString, currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
@@ -516,11 +522,80 @@ function createApp(opts, config) {
             }
             view.linenums_pre = bits.join('');
           }
+          viewAddCommit(view, obj.commit, repo.name, true);
           mustacheResponse(res, "blob.mustache", view);
         }
       });
     });
   });
+
+  // GET /:repo/commit/:id
+  app.get('/:repo/commit/:id', function(req, res) {
+    var name = req.params.repo;
+    var repo = db.repoFromName[name];
+    if (repo === undefined) {
+      mustache404Response(res, req.url);
+      return;
+    }
+
+    var id = req.params.id;
+    var view = {
+      repository: repo
+    };
+
+    repo.refs(function(err, refs, branches, tags) {
+      if (err) {
+        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
+        return;
+      }
+      var refString, currTag = null, currBranch = null;
+      // If there is a tag and head with the same name, the tag wins here.
+      // TODO: is that reasonable?
+      if (tags.indexOf(id) != -1) {
+        refString = 'refs/tags/' + id;
+        currTag = id;
+      } else if (branches.indexOf(id) != -1) {
+        refString = 'refs/heads/' + id;
+        currBranch = id;
+      } else {
+        // Must be a commitish.
+        refString = id;
+      }
+
+      //XXX START HERE: put "tree" in the view.branches,tags ? Another var for that.
+      view.branches = branches.map(function(b) {
+        return {
+          name: b,
+          href: '/' + repo.name + '/tree/' + b,
+          isCurr: b===currBranch
+        }
+      });
+      view.tags = tags.map(function(t) {
+        return {
+          name: t,
+          href: '/' + repo.name + '/tree/' + t,
+          isCurr: t===currTag
+        }
+      });
+
+      getGitObject(repo, refString, "commit", null, function(err, commit) {
+        if (err) {
+          if (err.errno == process.ENOENT) {
+            mustache404Response(res, req.url);
+          } else {
+            mustache500Response(res,
+              "Error getting git commit: repo='"+repo.name+"' ref='"+refString+"'",
+              JSON.stringify(err, null, 2));
+          }
+          return;
+        }
+        viewAddCommit(view, commit.commit, repo.name);
+        view.title = "Commit " + view.commit.id + " (" + repo.name + ") \u2014 " + config.name,
+        mustacheResponse(res, "commit.mustache", view, null, true);
+      });
+    });
+  });
+
 
   return app;
 }
@@ -701,6 +776,7 @@ db = (function() {
  */
 function getGitObject(repo, commitishOrRefString, type, path, callback) {
   assert.ok(type === "commit" || type === "entry");
+  var theCommit;
 
   function getGitEntry(repo, treeId, pathParts, path) {
     repo.api.getTree(treeId, function(err, tree) {
@@ -713,7 +789,8 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
       }
       if (pathParts.length == 0) {
           callback(null, {
-            tree: tree
+            tree: tree,
+            commit: theCommit
           });
       } else {
         var thisPart = pathParts.shift();
@@ -733,7 +810,8 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
               return;
             }
             callback(null, {
-              blob: blob
+              blob: blob,
+              commit: theCommit
             });
           });
         } else {
@@ -757,6 +835,7 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
         callback(null, {commit: commit});
       } else {
         var pathParts = (path ? path.split('/') : []);
+        theCommit = commit;
         getGitEntry(repo, commit.tree, pathParts, path);
       }
     });
@@ -821,6 +900,52 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
       }
       onCommitRef({target: stdout.trim()});
     });
+  }
+}
+
+
+/**
+ * Add a "commit" field to the given mustache template view
+ * object with all the necessary processed template variables
+ * used by the "commit.mustache" partial.
+ *
+ * @param view {Object} A mustache template view object.
+ * @param commit {gitteh.Commit?} The object returned from
+ *    `getGitObject(..., "commit", ...).commit`.
+ * @param repoName {String}
+ * @param brief {Boolean} Add the necessary data and flags for the
+ *    commit.mustache to render a "brief" commit box.
+ * @param name {String} The name of field to add to `view`. Default is
+ *    "commit".
+ */
+function viewAddCommit(view, commit, repoName, brief /* =false */,
+                       name /* ="commit" */) {
+  if (brief === undefined || brief === null) brief = false;
+  name = name || "commit";
+  var c = view[name] = commit;
+
+  // Used for gravatar links.
+  c.author.emailMd5 = hashlib.md5(c.author.email.toLowerCase());
+
+  var links = [];
+  if (brief) {
+    links.push('commit  <a href="/' + repoName + '/commit/' + c.id + '">'
+      + c.id.slice(0, 16) + '</a>');
+  } else {
+    links.push("commit  "+c.id.slice(0, 16));
+  }
+  c.parents.forEach(function(p, i) {
+    links.push('parent  <a href="/' + repoName + '/commit/' + p + '">'
+      + p.slice(0, 16) + '</a>');
+  });
+  c.links = links.join('\n');
+
+  if (brief) {
+    var line1 = c.message.split('\n', 1)[0]
+    c.brief = {
+      message: (line1.length > 60 ? line1.slice(0, 60) + "..." : line1),
+      href: "/" + repoName + "/commit/" + c.id
+    }
   }
 }
 
@@ -1108,14 +1233,6 @@ function parseArgv(argv) {
   }
 
   return opts;
-}
-
-
-function warn(o) {
-  console.warn(o);
-}
-function log(o) {
-  console.log(o);
 }
 
 // Heuristic: If the first 1kB decodes successfully as UTF-8, then say yes.
