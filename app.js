@@ -523,7 +523,7 @@ function createApp(opts, config) {
             view.linenums_pre = bits.join('');
           }
           viewAddCommit(view, obj.commit, repo.name, true);
-          mustacheResponse(res, "blob.mustache", view);
+          mustacheResponse(res, "blob.mustache", view, null, true);
         }
       });
     });
@@ -590,8 +590,18 @@ function createApp(opts, config) {
           return;
         }
         viewAddCommit(view, commit.commit, repo.name);
-        view.title = "Commit " + view.commit.id + " (" + repo.name + ") \u2014 " + config.name,
-        mustacheResponse(res, "commit.mustache", view, null, true);
+        view.title = "Commit " + commit.commit.id + " (" + repo.name + ") \u2014 " + config.name,
+
+        gitExec(["show", commit.commit.id], repo.dir, function(err, stdout, stderr) {
+          if (err) {
+            //TODO: include 'data' in error.
+            warn("error: Error fetching repository '"+repo.name+"' ("
+                 + repo.url+") diff '"+commit.commit.id+"': "+err);
+          }
+          var diffStart = stdout.match(/^diff/m);
+          view.diff = (diffStart ? stdout.slice(diffStart.index) : "");
+          mustacheResponse(res, "commit.mustache", view, null, true);
+        });
       });
     });
   });
