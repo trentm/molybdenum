@@ -6,6 +6,9 @@
   is unbrowsable because of the client-side coloring delay.
   Easiest would be to just bring syntax coloring back server side but
   have some serious caching.
+    - redis caching
+    - generic thing for "syntax color this block of code"
+    - use commit diffs as the guinea pig
 - GET /commit/:id   # redirs to appropriate repo -> cache in redis
 - GET /:repo/commits?page=n
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
