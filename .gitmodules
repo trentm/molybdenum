@@ -1,0 +1,3 @@
+[submodule "deps/redis"]
+	path = deps/redis
+	url = git://github.com/antirez/redis.git
