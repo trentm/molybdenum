@@ -1,8 +1,12 @@
-
-- GET /:repo/commit/:id
-- redis?
-- need caching and better syntax coloring handling: e.g.
+- syntax coloring:
+    - http://0.0.0.0:3333/eol/commit/1a071c8728d57845ed76de67b8e0cbf2caa63915
+        Get that to have the styling, line numbering and anchor highlighting support
+        of, e.g. http://0.0.0.0:3333/eol/blob/master/Makefile.py
+    - make a partial out of this
+    - get this in blob views
+- redis caching for syntaxHighlight
   http://0.0.0.0:3333/illumos-live/blob/master/usr/src/lib/libzonecfg/common/libzonecfg.c
+- need caching and better syntax coloring handling: e.g.
   is unbrowsable because of the client-side coloring delay.
   Easiest would be to just bring syntax coloring back server side but
   have some serious caching.

@@ -17,6 +17,7 @@ var sys = require('sys');
 var Path = require('path');
 var child_process = require('child_process');
 var assert = require('assert');
+var path = require('path');
 
 var gitteh = require('gitteh');
 var chaingang = require('chain-gang');
@@ -600,7 +601,14 @@ function createApp(opts, config) {
           }
           var diffStart = stdout.match(/^diff/m);
           view.diff = (diffStart ? stdout.slice(diffStart.index) : "");
-          mustacheResponse(res, "commit.mustache", view, null, true);
+          syntaxHighlight(view.diff, "diff", function(err, html) {
+            if (err) {
+              warn("error syntax coloring for '"+req.url+"': "+err);
+            } else {
+              view.diffhtml = html;
+            }
+            mustacheResponse(res, "commit.mustache", view, null, true);
+          });
         });
       });
     });
@@ -1069,6 +1077,47 @@ function gitExec(args, gitDir, callback) {
   });
   child.stdin.end();
 }
+
+
+/**
+ * Syntax highlight with pygments.
+ */
+var PYGMENTS_NULL_HTML = '<div class="highlight"><pre>\n</pre></div>\n'
+function syntaxHighlight(content, lexer, callback) {
+  var argv = [
+    path.join(__dirname, "deps", "pygments", "pygmentize"),
+    "-l", lexer,
+    "-f", "html",
+    "-O", "encoding=utf-8"
+  ];
+  var child = child_process.spawn("python", argv);
+  var stdout = [], stderr = [];
+  child.stdout.setEncoding('binary');
+  child.stdout.addListener('data', function (text) {
+    stdout[stdout.length] = text;
+  });
+  child.stderr.addListener('data', function (text) {
+    stderr[stderr.length] = text;
+  });
+  child.addListener('exit', function (code) {
+    if (code > 0) {
+      log("syntaxHighlight: code "+code+": python " + argv.join(" "));
+      var err = new Error(stderr.join(''));
+      callback(err, stdout.join(''));
+      return;
+    }
+    //log("stderr: ", stderr.join(''))
+    var html = stdout.join('');
+    if (html === PYGMENTS_NULL_HTML) {
+      html = '';
+    }
+    callback(null, html);
+  });
+  child.stdin.setEncoding('utf-8')
+  child.stdin.write(content);
+  child.stdin.end();
+}
+
 
 
 function pathFromRouteParam(param) {
