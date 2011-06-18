@@ -398,15 +398,15 @@ div.line {
 
 
 
-/* ---- widget: commit box */
+/* ---- widget: commitbox */
 
-.commit {
+.commitbox {
   background: #D2E1FF;
   border: 1px solid #aaa;
   position: relative;
   min-height: 70px;
 }
-.commit pre {
+.commitbox pre {
   border: none;
   background-color: inherit;
   padding: 5px;
