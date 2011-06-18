@@ -595,13 +595,32 @@ function createApp(opts, config) {
 
         gitExec(["show", commit.commit.id], repo.dir, function(err, stdout, stderr) {
           if (err) {
-            //TODO: include 'data' in error.
+            //TODO: include 'data' in error. return here? error response?
             warn("error: Error fetching repository '"+repo.name+"' ("
                  + repo.url+") diff '"+commit.commit.id+"': "+err);
           }
           var diffStart = stdout.match(/^diff/m);
-          view.diff = (diffStart ? stdout.slice(diffStart.index) : "");
-          syntaxHighlight(view.diff, "diff", function(err, html) {
+          view.text = (diffStart ? stdout.slice(diffStart.index) : "");
+
+          // 'linenums_pre' is the equivalent of this:
+          //    {{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
+          //    {{/code}}
+          bits = [];
+          var lineNumStr;
+          var numLines = view.text.split('\n').length - 1; // -1 for trailing newline
+          for (var i=0; i < numLines; i++) {
+            lineNumStr = (i+1).toString();
+            bits.push('<span id="L');
+            bits.push(lineNumStr);
+            bits.push('" rel="#L')
+            bits.push(lineNumStr);
+            bits.push('">');
+            bits.push(lineNumStr);
+            bits.push('</span>\n');
+          }
+          view.linenums_pre = bits.join('');
+
+          syntaxHighlight(view.text, "diff", function(err, html) {
             if (err) {
               warn("error syntax coloring for '"+req.url+"': "+err);
             } else {
@@ -1082,8 +1101,14 @@ function gitExec(args, gitDir, callback) {
 /**
  * Syntax highlight with pygments.
  */
-var PYGMENTS_NULL_HTML = '<div class="highlight"><pre>\n</pre></div>\n'
+var PYGMENTS_HTML_PREFIX = '<div class="highlight"><pre>';
+var PYGMENTS_HTML_SUFFIX = '\n</pre></div>\n';
 function syntaxHighlight(content, lexer, callback) {
+  if (!content || content.length === 0) {
+    callback(null, "");
+    return;
+  }
+
   var argv = [
     path.join(__dirname, "deps", "pygments", "pygmentize"),
     "-l", lexer,
@@ -1108,10 +1133,25 @@ function syntaxHighlight(content, lexer, callback) {
     }
     //log("stderr: ", stderr.join(''))
     var html = stdout.join('');
-    if (html === PYGMENTS_NULL_HTML) {
-      html = '';
+    html = html.slice(PYGMENTS_HTML_PREFIX.length);
+    html = html.slice(0, html.length-PYGMENTS_HTML_SUFFIX.length);
+
+    // Munge to HTML wanted for line highlighting
+    var munged = [];
+    var lines = html.split(/\r\n|\n/);
+    var length = lines.length;
+    for (var i=0; i < length; i++) {
+      munged.push('<div class="line" id="LC')
+      munged.push((i+1).toString())
+      munged.push('" style="background-color: transparent">')
+      munged.push(lines[i])
+      if (i+1 === length) {
+        munged.push('</div>')
+      } else {
+        munged.push('<br/></div>')
+      }
     }
-    callback(null, html);
+    callback(null, munged.join(''));
   });
   child.stdin.setEncoding('utf-8')
   child.stdin.write(content);

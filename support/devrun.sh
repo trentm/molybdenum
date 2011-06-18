@@ -55,6 +55,7 @@ ${NODE_DEV} $ROOT/app.js > $ROOT/tmp/dev-hub.log 2>&1 &
 sleep 1
 
 echo "== tail the logs ..."
-multitail -f $ROOT/tmp/dev-redis.log $ROOT/tmp/dev-hub.log
+#multitail -f $ROOT/tmp/dev-redis.log $ROOT/tmp/dev-hub.log
+tail -f $ROOT/tmp/dev-hub.log
 
 cleanup

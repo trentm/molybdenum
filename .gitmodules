@@ -1,3 +1,6 @@
 [submodule "deps/redis"]
 	path = deps/redis
 	url = git://github.com/antirez/redis.git
+[submodule "static/static/pygments-css"]
+	path = static/static/pygments-css
+	url = git://github.com/richleland/pygments-css.git
