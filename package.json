@@ -11,15 +11,14 @@
     "Trent Mick <trentm@gmail.com>"
   ],
   "dependencies": {
-    "base64": "*",
-    "chain-gang": "*",
-    "gitteh": "*",
-    "mustache.js": "*",
+    "base64": "2.0",
+    "chain-gang": "0.2",
+    "gitteh": "0.1",
     "express": "2.3.3",
-    "iniparser": "1.0.3",
-    "mime": "1.2.1",
-    "underscore": "1.1.6",
-    "redis": "0.6.0",
+    "iniparser": "1.0",
+    "mime": "1.2",
+    "underscore": "1.1",
+    "redis": "0.6",
     "hashlib": "*"
   },
   "scripts": {
