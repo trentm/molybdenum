@@ -354,19 +354,22 @@ table.basic tbody tr:nth-child(odd) {
 }
 
 
-/* ---- page: blob */
+/* ---- widget: textbox */
 
-#data {
+.textbox {
   overflow: auto;
   border: 1px solid #ccc;
 }
+table.text,
 table.code {
   margin: 0;
   padding: 0;
 }
+table.text pre,
 table.code pre {
   font-size: 12px;
 }
+table.text td,
 table.code td {
   border: none;
   padding: 0;
@@ -383,6 +386,7 @@ pre.linenums {
 pre.linenums span {
   cursor: pointer;
 }
+pre.text,
 pre.codetext {
   border: none;
   margin: 0;

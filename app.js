@@ -498,33 +498,23 @@ function createApp(opts, config) {
           res.end(obj.blob.data, "binary");
         } else {
           //warn(req)
+          viewAddCommit(view, obj.commit, repo.name, true);
           view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
           var mimetype = mime.lookup(path);
           view.isImage = (mimetype.slice(0, 'image/'.length) === 'image/')
           if (llUtf8) {
-            //TODO:XXX guard against decode failure later in document
-            view.text = decodeURIComponent(escape(obj.blob.data));
-
-            // 'linenums_pre' is the equivalent of this:
-            //    {{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
-            //    {{/code}}
-            bits = [];
-            var lineNumStr;
-            var numLines = view.text.split('\n').length;
-            for (var i=0; i < numLines; i++) {
-              lineNumStr = (i+1).toString();
-              bits.push('<span id="L');
-              bits.push(lineNumStr);
-              bits.push('" rel="#L')
-              bits.push(lineNumStr);
-              bits.push('">');
-              bits.push(lineNumStr);
-              bits.push('</span>\n');
-            }
-            view.linenums_pre = bits.join('');
+            //TODO: guard against decode failure later in document
+            var text = decodeURIComponent(escape(obj.blob.data));
+            viewAddForTextbox(view, "text", text, path, function (err) {
+              if (err) {
+                mustache500Response(res, "Internal error processing view", err);
+                return;
+              }
+              mustacheResponse(res, "blob.mustache", view, null, true);
+            });
+          } else {
+            mustacheResponse(res, "blob.mustache", view, null, true);
           }
-          viewAddCommit(view, obj.commit, repo.name, true);
-          mustacheResponse(res, "blob.mustache", view, null, true);
         }
       });
     });
@@ -600,31 +590,11 @@ function createApp(opts, config) {
                  + repo.url+") diff '"+commit.commit.id+"': "+err);
           }
           var diffStart = stdout.match(/^diff/m);
-          view.text = (diffStart ? stdout.slice(diffStart.index) : "");
-
-          // 'linenums_pre' is the equivalent of this:
-          //    {{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
-          //    {{/code}}
-          bits = [];
-          var lineNumStr;
-          var numLines = view.text.split('\n').length - 1; // -1 for trailing newline
-          for (var i=0; i < numLines; i++) {
-            lineNumStr = (i+1).toString();
-            bits.push('<span id="L');
-            bits.push(lineNumStr);
-            bits.push('" rel="#L')
-            bits.push(lineNumStr);
-            bits.push('">');
-            bits.push(lineNumStr);
-            bits.push('</span>\n');
-          }
-          view.linenums_pre = bits.join('');
-
-          syntaxHighlight(view.text, "diff", function(err, html) {
+          var text = (diffStart ? stdout.slice(diffStart.index) : "");
+          viewAddForTextbox(view, "diff", text, ".diff", function (err) {
             if (err) {
-              warn("error syntax coloring for '"+req.url+"': "+err);
-            } else {
-              view.diffhtml = html;
+              mustache500Response(res, "Internal error processing diff view", err);
+              return;
             }
             mustacheResponse(res, "commit.mustache", view, null, true);
           });
@@ -942,9 +912,55 @@ function getGitObject(repo, commitishOrRefString, type, path, callback) {
 
 
 /**
+ * Add a "text" field to the given mustache template view object
+ * with all the necessary template vars used by the "textbox.mustache"
+ * partial/widget.
+ *
+ * @param view {Object} A mustache template view object.
+ * @param fieldName {String} The name of field to add to `view`.
+ * @param text {String} The actual code text.
+ * @param filename {String} Is a filename or path that is given to Pygments
+ *    to guess the text type.
+ * @param callback {Function} Will be called as `callback(err)` when done.
+ *    "err" will be null if successful.
+ */
+function viewAddForTextbox(view, fieldName, text, filename, callback) {
+  var obj = view[fieldName] = {
+    text: text
+  };
+
+  // 'linenums_pre' is the equivalent of this:
+  //    {{#code}}<span id="L{{n}}" rel="#L{{n}}">{{n}}</span>
+  //    {{/code}}
+  bits = [];
+  var lineNumStr;
+  var numLines = text.split('\n').length - 1; // -1 for trailing newline
+  for (var i=0; i < numLines; i++) {
+    lineNumStr = (i+1).toString();
+    bits.push('<span id="L');
+    bits.push(lineNumStr);
+    bits.push('" rel="#L')
+    bits.push(lineNumStr);
+    bits.push('">');
+    bits.push(lineNumStr);
+    bits.push('</span>\n');
+  }
+  obj.linenums_pre = bits.join('');
+
+  syntaxHighlight(text, filename, function(err, html) {
+    if (err) {
+      callback(err)
+    } else {
+      obj.html = html;
+      callback(null)
+    }
+  });
+}
+
+/**
  * Add a "commit" field to the given mustache template view
  * object with all the necessary processed template variables
- * used by the "commit.mustache" partial.
+ * used by the "commitbox.mustache" partial.
  *
  * @param view {Object} A mustache template view object.
  * @param commit {gitteh.Commit?} The object returned from
@@ -1103,17 +1119,16 @@ function gitExec(args, gitDir, callback) {
  */
 var PYGMENTS_HTML_PREFIX = '<div class="highlight"><pre>';
 var PYGMENTS_HTML_SUFFIX = '\n</pre></div>\n';
-function syntaxHighlight(content, lexer, callback) {
+function syntaxHighlight(content, filename, callback) {
   if (!content || content.length === 0) {
     callback(null, "");
     return;
   }
 
   var argv = [
-    path.join(__dirname, "deps", "pygments", "pygmentize"),
-    "-l", lexer,
-    "-f", "html",
-    "-O", "encoding=utf-8"
+    path.join(__dirname, "deps", "pyg.py"),
+    filename,
+    "-"
   ];
   var child = child_process.spawn("python", argv);
   var stdout = [], stderr = [];
