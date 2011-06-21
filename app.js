@@ -385,7 +385,7 @@ function createApp(opts, config) {
         if (obj.commit) {
           viewAddCommit(view, obj.commit, repo.name, true);
         }
-        mustacheResponse(res, "tree.mustache", view, null, true);
+        mustacheResponse(res, "tree.mustache", view);
       });
     });
   });
@@ -510,10 +510,10 @@ function createApp(opts, config) {
                 mustache500Response(res, "Internal error processing view", err);
                 return;
               }
-              mustacheResponse(res, "blob.mustache", view, null, true);
+              mustacheResponse(res, "blob.mustache", view);
             });
           } else {
-            mustacheResponse(res, "blob.mustache", view, null, true);
+            mustacheResponse(res, "blob.mustache", view);
           }
         }
       });
@@ -596,7 +596,7 @@ function createApp(opts, config) {
               mustache500Response(res, "Internal error processing diff view", err);
               return;
             }
-            mustacheResponse(res, "commit.mustache", view, null, true);
+            mustacheResponse(res, "commit.mustache", view);
           });
         });
       });

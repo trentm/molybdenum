@@ -1,31 +1,44 @@
-- syntax coloring:
-    - http://0.0.0.0:3333/eol/commit/1a071c8728d57845ed76de67b8e0cbf2caa63915
-        Get that to have the styling, line numbering and anchor highlighting support
-        of, e.g. http://0.0.0.0:3333/eol/blob/master/Makefile.py
-    - make a partial out of this
-    - get this in blob views
-- redis caching for syntaxHighlight
-  http://0.0.0.0:3333/illumos-live/blob/master/usr/src/lib/libzonecfg/common/libzonecfg.c
-- node_modules cleanup: thsoe that can be should be install via
-  'npm install'. The others manually first handled by having them
-  commited.
+- isFetchPending is staying true:
+    $ echo '{"repository": {"url": "git@github.com:trentm/eol.git", "name": "eol"}}' | curl http://localhost:3333/api/repos/eol -X POST -d @-
+    $ curl http://localhost:3333/api/repos/eol
+    {
+      "repository": {
+        "name": "eol",
+        "url": "git@github.com:trentm/eol.git",
+        "dir": "/Users/trentm/tm/hub2/tmp/data/repos/eol.git",
+        "isCloned": true,
+        "isFetchPending": true,
+        "numActiveFetches": 0
+      }
+    }
+
+- the POST to existing repo name with different data says 200 but does nothing (wrong)
+- DELETE /api/repos/:name
 - GET /commit/:id   # redirs to appropriate repo -> cache in redis
-- GET /:repo/commits?page=n
+- button to add a repo on '/'
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
-- update docs (api doc, sitemap)
+- POST -> PUT for adding to repo?
 - write the post-receive
 - deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
 - https for head.no.de
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
-- better name. bluelight? no reason. head?
-- 'hub' client?
+- better name. bluelight? no reason. head? shed (little place with some tools)?
 - Verify this: make gitteh build on solaris:
   https://github.com/libgit2/libgit2/pull/138
-
+- GET /:repo/commits?page=n
 
 # nice to haves
 
+- update docs (api doc, sitemap)
+- error reporting for bogus repo:
+    $ echo '{"repository": {"url": "git@github.com/trentm/eol.git", "name": "eol"}}' | curl http://localhost:3333/api/repos/eol -X POST -d @-
+  led to this in the log:
+    gitExec: code 128: git clone --bare git@github.com/trentm/eol.git /Users/trentm/tm/hub2/tmp/data/tmp/eol.52297
+    error: Error cloning repository 'eol' (git@github.com/trentm/eol.git) to '/Users/trentm/tm/hub2/tmp/data/tmp/eol.52297': Error: fatal: Could not switch to 'git@github.com/trentm': No such file or directory
+- redis caching for syntaxHighlight
+  http://0.0.0.0:3333/illumos-live/blob/master/usr/src/lib/libzonecfg/common/libzonecfg.c
+- cli client
 - document the following in inline docs:
     startup: queue up chaingang task to update each repo, then never lose anything on crash
         might be overkill with lots of repos. Could also have "POST /api/push" with empty
