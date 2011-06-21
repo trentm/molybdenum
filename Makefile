@@ -42,9 +42,10 @@ REDIS_SERVER := deps/redis/src/redis-server
 
 help:
 	@echo "help: show this help"
-	@echo "run: run a local development Hub"
+	@echo "all: build all (most dependencies)"
 	@echo "docs: rebuild the docs"
 	@echo "test: run the test suite"
+	@echo "run: run a local development Hub"
 
 all:: deps
 
@@ -72,7 +73,6 @@ tmp:
 	mkdir -p tmp
 
 run: tmp 
-	#node_modules/.bin/node-dev app.js
 	support/devrun.sh
 
 # To setup for using restdown <https://github.com/trentm/restdown>:

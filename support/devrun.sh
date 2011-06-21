@@ -15,7 +15,7 @@ fi
 set -o errexit
 
 ROOT=$(cd $(dirname $0)/../; pwd)
-NODE_DEV="env LD_PRELOAD_32=/usr/lib/extendedFILE.so.1 PATH=${ROOT}/deps/node-install/bin:$PATH node-dev"
+NODE_DEV="env PATH=${ROOT}/node_modules/.bin:$PATH node-dev"
 
 
 
@@ -44,6 +44,7 @@ function cleanup {
 trap 'errexit $? $LINENO' EXIT
 
 echo "== preclean"
+mkdir -p tmp/data
 [[ -e $ROOT/tmp/dev-redis.pid ]] && kill `cat $ROOT/tmp/dev-redis.pid` && sleep 1 || true
 ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 
@@ -51,7 +52,7 @@ echo "== start redis (tmp/dev-redis.log)"
 $ROOT/deps/redis/src/redis-server $ROOT/support/dev-redis.conf
 
 echo "== start hub (tmp/dev-hub.log)"
-${NODE_DEV} $ROOT/app.js > $ROOT/tmp/dev-hub.log 2>&1 &
+${NODE_DEV} $ROOT/app.js -c $ROOT/support/dev-hub.ini > $ROOT/tmp/dev-hub.log 2>&1 &
 sleep 1
 
 echo "== tail the logs ..."
