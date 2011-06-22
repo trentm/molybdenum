@@ -674,9 +674,10 @@ db = (function() {
     // We use a task name "clone:$repo_name" to ensure that there is
     // only ever one clone task for a given repo.
     chain.add(cloneRepoTask(this_), "clone:"+this.name, function(err) {
-      this._cache = {};
+      this_._cache = {};
       log("Finished clone task (repository '"+this_.name+"').");
       if (this_.isFetchPending) {
+        log("Fetch is pending, start fetch (repository '"+this_.name+"').")
         this_.fetch();
       }
     });

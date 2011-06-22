@@ -12,7 +12,7 @@
   ],
   "dependencies": {
     "base64": "2.0",
-    "chain-gang": "0.2",
+    "chain-gang": "1.0",
     "gitteh": "0.1",
     "express": "2.3.3",
     "iniparser": "1.0",
