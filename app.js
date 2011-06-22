@@ -666,6 +666,35 @@ function createApp(opts, config) {
     });
   });
 
+  // GET /commit/:id
+  app.get('/commit/:id', function(req, res) {
+    // Get commit and repo info from '/api/commit/:id'.
+    var id = req.params.id;
+    var opts = {
+      host: config.host || "127.0.0.1",
+      port: config.port,
+      path: '/api/commit/' + id
+    };
+    var subreq = http.get(opts, function(subres) {
+      if (subres.statusCode === 200) {
+        subres.setEncoding("utf-8");
+        var chunks = [];
+        subres.on("data", function(chunk) {
+          chunks.push(chunk);
+        });
+        subres.on("end", function(data) {
+          var commit = JSON.parse(chunks.join(''));
+          var redir = "/" + commit.repository.name
+            + "/commit/" + commit.commit.id;
+          res.redirect(redir);
+        });
+      } else {
+        mustache404Response(res, req.url);
+      }
+    }).on("error", function(suberr) {
+      mustache500Response(res, "error finding commit id '"+id+"'", suberr);
+    });
+  });
 
   return app;
 }
