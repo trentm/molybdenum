@@ -1,4 +1,3 @@
-- GET /api/commit/:id ... only shas, not refs!
 - GET /commit/:id   # redirs to appropriate repo -> cache in redis
 - redis caching of commit ids -> repo/:fullid
 - POST -> PUT for adding to repo?

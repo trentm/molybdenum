@@ -288,35 +288,27 @@ function createApp(opts, config) {
 
     // Look in each repo.
     var result = null;
-
     function lookupCommit(repo, cb) {
       if (result) {
         return cb(null);
       }
-      var path = '/api/repos/'+repo.name+'/commit/'+id;
-      var opts = {
-        host: config.host || "127.0.0.1",
-        port: config.port,
-        path: path
-      };
-      var subreq = http.get(opts, function(subres) {
-        if (subres.statusCode === 200) {
-          subres.setEncoding("utf-8");
-          var chunks = [];
-          subres.on("data", function(chunk) {
-            chunks.push(chunk);
-          });
-          subres.on("end", function(data) {
-            result = JSON.parse(chunks.join(''));
-            result.repository = repo.getPublicObject();
+      getGitObject(repo, id, "commit", null, function(err, commit) {
+        if (err) {
+          if (err.errno == process.ENOENT) {
             cb(null);
-          });
+          } else {
+            cb("error getting git commit: repo='"+repo.name+"' id='"+id+"'");
+          }
         } else {
+          // Current `getGitObject` will find a commit for an "id" that
+          // is a branch name. We don't want that here, so require a
+          // prefix match on the full commit id.
+          if (commit.commit.id.slice(0, id.length) === id) {
+            result = commit;
+            result.repository = repo.getPublicObject();
+          }
           cb(null);
         }
-      }).on("error", function(suberr) {
-        log("Error calling '%s': %s\n\n", path, suberr, suberr)
-        cb(suberr);
       });
     }
 
