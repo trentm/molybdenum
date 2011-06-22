@@ -1,23 +1,9 @@
-- isFetchPending is staying true:
-    $ echo '{"repository": {"url": "git@github.com:trentm/eol.git", "name": "eol"}}' | curl http://localhost:3333/api/repos/eol -X POST -d @-
-    $ curl http://localhost:3333/api/repos/eol
-    {
-      "repository": {
-        "name": "eol",
-        "url": "git@github.com:trentm/eol.git",
-        "dir": "/Users/trentm/tm/hub2/tmp/data/repos/eol.git",
-        "isCloned": true,
-        "isFetchPending": true,
-        "numActiveFetches": 0
-      }
-    }
-
-- the POST to existing repo name with different data says 200 but does nothing (wrong)
-- DELETE /api/repos/:name
+- GET /api/commit/:id ... only shas, not refs!
 - GET /commit/:id   # redirs to appropriate repo -> cache in redis
+- redis caching of commit ids -> repo/:fullid
+- POST -> PUT for adding to repo?
 - button to add a repo on '/'
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
-- POST -> PUT for adding to repo?
 - write the post-receive
 - deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
 - https for head.no.de
@@ -30,6 +16,8 @@
 
 # nice to haves
 
+- /help/
+- the POST to existing repo name with different data says 200 but does nothing (wrong)
 - update docs (api doc, sitemap)
 - error reporting for bogus repo:
     $ echo '{"repository": {"url": "git@github.com/trentm/eol.git", "name": "eol"}}' | curl http://localhost:3333/api/repos/eol -X POST -d @-

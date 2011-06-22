@@ -18,6 +18,7 @@ var Path = require('path');
 var child_process = require('child_process');
 var assert = require('assert');
 var path = require('path');
+var http = require('http');
 
 var gitteh = require('gitteh');
 var chaingang = require(__dirname + '/node_modules/chain-gang/lib/index.js');
@@ -99,18 +100,21 @@ function createApp(opts, config) {
   });
 
   app.get('/api/repos', function(req, res) {
-    jsonResponse(res, {repositories: _.values(db.repoFromName)}, 200,
-      jsonReplacerExcludeInternalKeys);
+    jsonResponse(res, {
+      repositories: _.values(db.repoFromName).map(
+        function(r) { return r.getPublicObject() })
+    }, 200);
   });
+
   app.get('/api/repos/:repo', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
     if (repo === undefined) {
       jsonErrorResponse(res, "no such repo: '"+req.params.repo+"'", 404);
     } else {
-      jsonResponse(res, {repository: repo}, 200,
-        jsonReplacerExcludeInternalKeys);
+      jsonResponse(res, {repository: repo.getPublicObject()}, 200);
     }
   });
+
   app.post('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
     try {
       var data = JSON.parse(req.body);
@@ -128,9 +132,9 @@ function createApp(opts, config) {
       || db.addRepo(data.repository.name, data.repository.url);
     repo.fetch();
 
-    jsonResponse(res, {repository: repo}, 200,
-      jsonReplacerExcludeInternalKeys);
+    jsonResponse(res, {repository: repo.getPublicObject()}, 200);
   });
+
   app.del('/api/repos/:repo', function(req, res) {
     var repo = db.repoFromName[req.params.repo];
     if (repo === undefined) {
@@ -273,6 +277,57 @@ function createApp(opts, config) {
             "unexpected git object: keys="+JSON.stringify(Object.keys(obj)), obj);
         }
       });
+    });
+  });
+
+  app.get('/api/commit/:id', function(req, res) {
+    var id = req.params.id;
+
+    // Lookup in cache.
+    //TODO
+
+    // Look in each repo.
+    var result = null;
+
+    function lookupCommit(repo, cb) {
+      if (result) {
+        return cb(null);
+      }
+      var path = '/api/repos/'+repo.name+'/commit/'+id;
+      var opts = {
+        host: config.host || "127.0.0.1",
+        port: config.port,
+        path: path
+      };
+      var subreq = http.get(opts, function(subres) {
+        if (subres.statusCode === 200) {
+          subres.setEncoding("utf-8");
+          var chunks = [];
+          subres.on("data", function(chunk) {
+            chunks.push(chunk);
+          });
+          subres.on("end", function(data) {
+            result = JSON.parse(chunks.join(''));
+            result.repository = repo.getPublicObject();
+            cb(null);
+          });
+        } else {
+          cb(null);
+        }
+      }).on("error", function(suberr) {
+        log("Error calling '%s': %s\n\n", path, suberr, suberr)
+        cb(suberr);
+      });
+    }
+
+    asyncForEach(_.values(db.repoFromName), lookupCommit, function (err) {
+      if (err) {
+        jsonErrorResponse(res, "Internal error finding commit '"+id+"'.", 500);
+      } else if (result) {
+        jsonResponse(res, result, 200);
+      } else {
+        jsonErrorResponse(res, "Commit '"+id+"' not found.", 404);
+      }
     });
   });
 
@@ -648,6 +703,19 @@ db = (function() {
     this.numActiveFetches = 0;
     this._apiCache = null;
     this._cache = {};
+  }
+
+  /**
+   * Return an object with public fields for this repo, i.e. fields
+   * appropriate for API responses.
+   */
+  Repository.prototype.getPublicObject = function getPublicObject() {
+    return {
+      name: this.name,
+      url: this.url,
+      isCloned: this.isCloned,
+      isFetchPending: this.isFetchPending
+    };
   }
 
   /**
@@ -1305,6 +1373,16 @@ function jsonErrorResponse(res, message, code, details) {
   return jsonResponse(res, e, code);
 }
 
+
+/**
+ * Complete a JSON HTTP response.
+ *
+ * @param res {HTTPResponse}
+ * @param data {Object} The object to respond with. Will be encoded as JSON.
+ * @param status {Number} HTTP response. Optional. Default is 200.
+ * @param replacer {Function} Optional JSON replacer
+ *    `function (key, value) -> value or undefined`.
+ */
 function jsonResponse(res, data, status /* =200 */, replacer /* =null */) {
   if (status === undefined || status === null) {
     status = 200;
@@ -1318,17 +1396,30 @@ function jsonResponse(res, data, status /* =200 */, replacer /* =null */) {
   res.end(body);
 }
 
-function jsonReplacerExcludeInternalKeys(key, value) {
-  if (key && key[0] === '_') {
-    return undefined;
-  } else {
-    return value;
-  }
-}
 
 function noContentResponse(res) {
   res.writeHead(204, {'Content-Length': 0});
   res.end();
+}
+
+
+/**
+ * Run async `fn` on each entry in `list`. Call `cb(error)` when all done.
+ * `fn` is expected to have `fn(item, callback) -> callback(error)` signature.
+ *
+ * From Isaac's rimraf.js.
+ */
+function asyncForEach (list, fn, cb) {
+  if (!list.length) cb()
+  var c = list.length
+    , errState = null
+  list.forEach(function (item, i, list) {
+    fn(item, function (er) {
+      if (errState) return
+      if (er) return cb(errState = er)
+      if (-- c === 0) return cb()
+    })
+  })
 }
 
 

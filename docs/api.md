@@ -61,6 +61,35 @@ you are reading).
                      attributes: 33261 } ]
             }
         }
+        GET /api/commit/:id
+        {
+          "commit": {
+            "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
+            "message": "slight adding to Tim's test case for html5 block tags\n",
+            "author": {
+              "name": "Trent Mick",
+              "email": "trentm@gmail.com",
+              "time": "2011-03-23T04:48:40.000Z",
+              "timeOffset": -420
+            },
+            "committer": {
+              "name": "Trent Mick",
+              "email": "trentm@gmail.com",
+              "time": "2011-03-23T04:48:40.000Z",
+              "timeOffset": -420
+            },
+            "parents": [
+              "b72fee60f3c25e70d349567578f01011c450b5a5"
+            ],
+            "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
+          },
+          "repository": {
+            "name": "markdown2",
+            "url": "git@github.com:trentm/python-markdown2.git",
+            "isCloned": true,
+            "isFetchPending": false
+          }
+        }
 
     # HTML
     GET /:repo
