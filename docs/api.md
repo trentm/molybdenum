@@ -34,6 +34,7 @@ you are reading).
           "ref": $ref
         }
     GET /api/repos/:repo
+    DELETE /api/repos/:repo
     GET /api/repos/:repo/refs
     GET /api/repos/:repo/refs/:ref/:path
         GET /api/repos/eol/ref/master/README.md

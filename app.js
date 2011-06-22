@@ -26,6 +26,8 @@ var Mustache = require('mustache');
 var _ = require('underscore');
 var mime = require('mime');
 var hashlib = require('hashlib');
+var rimraf = require('rimraf');
+
 
 
 //--- exports for module usage
@@ -128,6 +130,20 @@ function createApp(opts, config) {
 
     jsonResponse(res, {repository: repo}, 200,
       jsonReplacerExcludeInternalKeys);
+  });
+  app.del('/api/repos/:repo', function(req, res) {
+    var repo = db.repoFromName[req.params.repo];
+    if (repo === undefined) {
+      jsonErrorResponse(res, "no such repo: '"+req.params.repo+"'", 404);
+      return;
+    }
+    db.removeRepo(repo.name, function(err) {
+      if (err) {
+        jsonErrorResponse(res, "Internal error removing repo: "+err, 500, err);
+        return;
+      }
+      noContentResponse(res);
+    });
   });
 
   // GET /api/repos/:repo/refs
@@ -754,6 +770,31 @@ db = (function() {
         repo.fetch();
       }
       return repo;
+    },
+
+    /**
+     * Remove the given repo.
+     *
+     * @param name {String} The repo name.
+     * @param callback {Function} Will be called as `callback(err)` on
+     *    completion. `err` will be null if successful.
+     */
+    removeRepo: function removeRepo(name, callback) {
+      var repo = this.repoFromName[name];
+      if (!repo) {
+        callback("No such repository: '"+name+"'.");
+        return;
+      }
+      delete this.repoFromName[name]
+      delete this.activeFetchesFromRepoName[name];
+      delete this.pendingFetchFromRepoName[name];
+      rimraf(repo.dir, function(err) {
+        if (err) {
+          callback("Error deleting repository: "+err);
+          return;
+        }
+        callback(null);
+      });
     }
   };
 })();
@@ -1284,6 +1325,12 @@ function jsonReplacerExcludeInternalKeys(key, value) {
     return value;
   }
 }
+
+function noContentResponse(res) {
+  res.writeHead(204, {'Content-Length': 0});
+  res.end();
+}
+
 
 function printHelp() {
   sys.puts("Usage: node app.js [OPTIONS]");
