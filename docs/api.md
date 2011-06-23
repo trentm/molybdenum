@@ -1,10 +1,9 @@
 ---
 title: Hub API
 brand: api.no.de
-version: 1.0.0
 ---
 
-# Hub API
+# Hub API and Sitemap
 
 ### All API calls start with
 
@@ -103,9 +102,28 @@ you are reading).
 -->
 
 
-# Repositories
+# General API
 
-## GET /repos
+## GET /api
+
+Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.
+
+#### example JSON response
+
+    {
+      "endpoints": [
+        ...
+      ], 
+      "version": "1.0.0"
+    }
+
+
+
+
+# Repository API
+
+## GET /api/repos
 
 List all repositories currently in the hub. (TODO: add paging)
 
@@ -131,7 +149,7 @@ List all repositories currently in the hub. (TODO: add paging)
     }
 
 
-## GET /repos/:repo
+## GET /api/repos/:repo
 
 Return info on all current repositories in the hub.
 
@@ -163,7 +181,7 @@ Return info on all current repositories in the hub.
     }
 
 
-## POST /repos/:repo
+## PUT /api/repos/:repo
 
 Let the hub know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -194,7 +212,7 @@ fields will be used if given.
         "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
         "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
         "ref": "refs/heads/master"
-    }' | curl {{ url }}/api/push -X POST -d @-
+    }' | curl {{ url }}/api/push -X PUT -d @-
 
 Note: This is pretty close to what you can use for a post-receive in your git
 repo's ".git/hooks" dir.
@@ -219,21 +237,76 @@ repo's ".git/hooks" dir.
     }
 
 
+## GET /api/repos/:repo
 
-# General
 
-## GET /
+## DELETE /api/repos/:repo
 
-Return this HTML documentation or a JSON representation of the API, depending
-on the request "Accept" header.
 
-#### example JSON response
+## GET /api/repos/:repo/refs
 
+
+## GET /api/repos/:repo/refs/:ref/:path
+
+    GET /api/repos/eol/ref/master/README.md
     {
-      "endpoints": [
-        ...
-      ], 
-      "version": "1.0.0"
+        "ref": "refs/heads/master",
+        "path": "README.md",
+        "type": "blob",
+        "blob" {
+            "id": ...
+            "data": ...
+        }
+    }
+    ...OR...
+    GET /api/repos/eol/refs/master/lib
+    {
+        "ref": "refs/heads/master",
+        "path": "lib",
+        "type": "tree",
+        "tree": {
+          "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
+          "entries":
+             [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
+                 name: 'eol.py',
+                 attributes: 33261 } ]
+        }
     }
 
 
+
+## GET /api/commit/:id
+    
+    {
+      "commit": {
+        "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
+        "message": "slight adding to Tim's test case for html5 block tags\n",
+        "author": {
+          "name": "Trent Mick",
+          "email": "trentm@gmail.com",
+          "time": "2011-03-23T04:48:40.000Z",
+          "timeOffset": -420
+        },
+        "committer": {
+          "name": "Trent Mick",
+          "email": "trentm@gmail.com",
+          "time": "2011-03-23T04:48:40.000Z",
+          "timeOffset": -420
+        },
+        "parents": [
+          "b72fee60f3c25e70d349567578f01011c450b5a5"
+        ],
+        "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
+      },
+      "repository": {
+        "name": "markdown2",
+        "url": "git@github.com:trentm/python-markdown2.git",
+        "isCloned": true,
+        "isFetchPending": false
+      }
+    }
+
+
+# Sitemap
+
+TODO:...

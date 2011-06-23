@@ -13,22 +13,28 @@
 
     <div id="sidebar">
 <ul>
-  <li><a href="#repositories">Repositories</a>
+  <li><a href="#general-api">General API</a>
   <ul>
-    <li><a href="#GET-/repos"><span class="verb">GET</span> <span>/repos</span></a></li>
-    <li><a href="#GET-/repos/:repo"><span class="verb">GET</span> <span>/repos/:repo</span></a></li>
-    <li><a href="#POST-/repos/:repo"><span class="verb">POST</span> <span>/repos/:repo</span></a></li>
+    <li><a href="#GET-/api"><span class="verb">GET</span> <span>/api</span></a></li>
   </ul></li>
-  <li><a href="#general">General</a>
+  <li><a href="#repository-api">Repository API</a>
   <ul>
-    <li><a href="#GET-/"><span class="verb">GET</span> <span>/</span></a></li>
+    <li><a href="#GET-/api/repos"><span class="verb">GET</span> <span>/api/repos</span></a></li>
+    <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#PUT-/api/repos/:repo"><span class="verb">PUT</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#DELETE-/api/repos/:repo"><span class="verb">DELETE</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#GET-/api/repos/:repo/refs"><span class="verb">GET</span> <span>/api/repos/:repo/refs</span></a></li>
+    <li><a href="#GET-/api/repos/:repo/refs/:ref/:path"><span class="verb">GET</span> <span>/api/repos/:repo/refs/:ref/:path</span></a></li>
+    <li><a href="#GET-/api/commit/:id"><span class="verb">GET</span> <span>/api/commit/:id</span></a></li>
   </ul></li>
+  <li><a href="#sitemap">Sitemap</a></li>
 </ul>
 
     </div>
     <div id="content">
 
-<h1>Hub API</h1>
+<h1>Hub API and Sitemap</h1>
 <div class="intro">
 
 
@@ -129,9 +135,26 @@ you are reading).</p>
 
 
 </div>
-<h1 id="repositories">Repositories</h1>
+<h1 id="general-api">General API</h1>
 
-<h2 id="GET-/repos"><span>GET /repos</span></h2>
+<h2 id="GET-/api"><span>GET /api</span></h2>
+
+<p>Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.</p>
+
+<h4>example JSON response</h4>
+
+<pre><code>{
+  "endpoints": [
+    ...
+  ], 
+  "version": "1.0.0"
+}
+</code></pre>
+
+<h1 id="repository-api">Repository API</h1>
+
+<h2 id="GET-/api/repos"><span>GET /api/repos</span></h2>
 
 <p>List all repositories currently in the hub. (TODO: add paging)</p>
 
@@ -158,7 +181,7 @@ you are reading).</p>
 }
 </code></pre>
 
-<h2 id="GET-/repos/:repo"><span>GET /repos/:repo</span></h2>
+<h2 id="GET-/api/repos/:repo"><span>GET /api/repos/:repo</span></h2>
 
 <p>Return info on all current repositories in the hub.</p>
 
@@ -192,7 +215,7 @@ Status: 404
 }
 </code></pre>
 
-<h2 id="POST-/repos/:repo"><span>POST /repos/:repo</span></h2>
+<h2 id="PUT-/api/repos/:repo"><span>PUT /api/repos/:repo</span></h2>
 
 <p>Let the hub know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -223,7 +246,7 @@ fields will be used if given.</p>
     "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
     "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
     "ref": "refs/heads/master"
-}' | curl {{ url }}/api/push -X POST -d @-
+}' | curl {{ url }}/api/push -X PUT -d @-
 </code></pre>
 
 <p>Note: This is pretty close to what you can use for a post-receive in your git
@@ -250,22 +273,75 @@ Status: 400
 }
 </code></pre>
 
-<h1 id="general">General</h1>
+<h2 id="GET-/api/repos/:repo"><span>GET /api/repos/:repo</span></h2>
 
-<h2 id="GET-/"><span>GET /</span></h2>
+<h2 id="DELETE-/api/repos/:repo"><span>DELETE /api/repos/:repo</span></h2>
 
-<p>Return this HTML documentation or a JSON representation of the API, depending
-on the request "Accept" header.</p>
+<h2 id="GET-/api/repos/:repo/refs"><span>GET /api/repos/:repo/refs</span></h2>
 
-<h4>example JSON response</h4>
+<h2 id="GET-/api/repos/:repo/refs/:ref/:path"><span>GET /api/repos/:repo/refs/:ref/:path</span></h2>
 
-<pre><code>{
-  "endpoints": [
-    ...
-  ], 
-  "version": "1.0.0"
+<pre><code>GET /api/repos/eol/ref/master/README.md
+{
+    "ref": "refs/heads/master",
+    "path": "README.md",
+    "type": "blob",
+    "blob" {
+        "id": ...
+        "data": ...
+    }
+}
+...OR...
+GET /api/repos/eol/refs/master/lib
+{
+    "ref": "refs/heads/master",
+    "path": "lib",
+    "type": "tree",
+    "tree": {
+      "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
+      "entries":
+         [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
+             name: 'eol.py',
+             attributes: 33261 } ]
+    }
 }
 </code></pre>
+
+<h2 id="GET-/api/commit/:id"><span>GET /api/commit/:id</span></h2>
+
+<pre><code>{
+  "commit": {
+    "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
+    "message": "slight adding to Tim's test case for html5 block tags\n",
+    "author": {
+      "name": "Trent Mick",
+      "email": "trentm@gmail.com",
+      "time": "2011-03-23T04:48:40.000Z",
+      "timeOffset": -420
+    },
+    "committer": {
+      "name": "Trent Mick",
+      "email": "trentm@gmail.com",
+      "time": "2011-03-23T04:48:40.000Z",
+      "timeOffset": -420
+    },
+    "parents": [
+      "b72fee60f3c25e70d349567578f01011c450b5a5"
+    ],
+    "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
+  },
+  "repository": {
+    "name": "markdown2",
+    "url": "git@github.com:trentm/python-markdown2.git",
+    "isCloned": true,
+    "isFetchPending": false
+  }
+}
+</code></pre>
+
+<h1 id="sitemap">Sitemap</h1>
+
+<p>TODO:...</p>
 
     </div>
 <script type="text/javascript" charset="utf-8">

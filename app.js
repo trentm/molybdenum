@@ -115,7 +115,7 @@ function createApp(opts, config) {
     }
   });
 
-  app.post('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
+  app.put('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
     try {
       var data = JSON.parse(req.body);
     } catch(ex) {
@@ -1137,7 +1137,11 @@ function viewAddCommit(view, commit, repoName, brief /* =false */,
 function fetchRepoTask(repo) {
   return function(worker) {
     //TODO: Better tmpDir naming for uniqueness.
-    gitExec(["fetch", "origin"], repo.dir, function(err, stdout, stderr) {
+    // See <http://lists-archives.org/git/623939-git-fetch-inside-a-bare-repo-does-nothing.html>
+    // for why the '+refs/heads/...'.
+    // Would instead using '--mirror' on the clone help?
+    // <http://asleepfromday.wordpress.com/2008/08/27/git-clone-mirror/>
+    gitExec(["fetch", "origin", "+refs/heads/*:refs/heads/*"], repo.dir, function(err, stdout, stderr) {
       if (err) {
         //TODO: include 'data' in error.
         warn("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);

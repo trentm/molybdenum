@@ -1,6 +1,4 @@
-- GET /commit/:id   # redirs to appropriate repo -> cache in redis
 - redis caching of commit ids -> repo/:fullid
-- POST -> PUT for adding to repo?
 - button to add a repo on '/'
 - move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
 - write the post-receive
@@ -12,6 +10,7 @@
 - Verify this: make gitteh build on solaris:
   https://github.com/libgit2/libgit2/pull/138
 - GET /:repo/commits?page=n
+- reserved top-level names: commit, help, api, more?
 
 # nice to haves
 

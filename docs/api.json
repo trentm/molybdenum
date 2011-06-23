@@ -1,9 +1,13 @@
 {
   "endpoints": [
-    "GET /repos", 
-    "GET /repos/:repo", 
-    "POST /repos/:repo", 
-    "GET /"
-  ], 
-  "version": "1.0.0"
+    "GET /api", 
+    "GET /api/repos", 
+    "GET /api/repos/:repo", 
+    "PUT /api/repos/:repo", 
+    "GET /api/repos/:repo", 
+    "DELETE /api/repos/:repo", 
+    "GET /api/repos/:repo/refs", 
+    "GET /api/repos/:repo/refs/:ref/:path", 
+    "GET /api/commit/:id"
+  ]
 }
