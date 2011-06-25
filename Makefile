@@ -75,11 +75,8 @@ tmp:
 run: tmp 
 	support/devrun.sh
 
-# To setup for using restdown <https://github.com/trentm/restdown>:
-#   git clone git://github.com/trentm/restdown.git
-#   export PATH=`pwd`/restdown/bin:$PATH
 docs:
-	restdown -v -m static/static docs/api.md
+	./support/restdown -v -b support/restdown-brand -m static/static docs/api.md
 
 test:
 	(cd test && make test)

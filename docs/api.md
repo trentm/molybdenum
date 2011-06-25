@@ -1,6 +1,5 @@
 ---
 title: Hub API
-brand: api.no.de
 ---
 
 # Hub API and Sitemap

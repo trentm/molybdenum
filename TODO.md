@@ -1,6 +1,5 @@
 - redis caching of commit ids -> repo/:fullid
 - button to add a repo on '/'
-- move static stuff to "/static" prefix: Done, but need to fix css link in restdown docs.
 - write the post-receive
 - deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
 - https for head.no.de
@@ -10,7 +9,8 @@
 - Verify this: make gitteh build on solaris:
   https://github.com/libgit2/libgit2/pull/138
 - GET /:repo/commits?page=n
-- reserved top-level names: commit, help, api, more?
+- reserved top-level names: commit, help, api, static, more?
+- refactor stuff out of app.js!
 
 # nice to haves
 
