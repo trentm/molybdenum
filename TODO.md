@@ -14,6 +14,10 @@
 
 # nice to haves
 
+- commit/diff views: get more context, side-by-side diff?
+- webrev-like support? i.e. upload a patch with good viewing tools for pre-commit code review.
+  E.g. http://dev1.illumos.org/~eschrock/cr/zfs-refratio/
+  'rm' likes webrev.
 - /help/
 - the POST to existing repo name with different data says 200 but does nothing (wrong)
 - update docs (api doc, sitemap)
