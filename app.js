@@ -796,7 +796,8 @@ db = (function() {
       this.isFetchPending = false;
       this.numActiveFetches += 1;
       var this_ = this;
-      chain.add(fetchRepoTask(this), null, function(err) {
+      var timestamp = (new Date()).toISOString();
+      chain.add(fetchRepoTask(this), "fetch:"+this.name+":"+timestamp, function(err) {
         this._cache = {};
         log("Finished fetch task (repository '"+this_.name+"').");
         this_.numActiveFetches -= 1;
