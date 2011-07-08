@@ -1,6 +1,7 @@
-- redis caching of commit ids -> repo/:fullid
+- redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1
 - button to add a repo on '/'
 - write the post-receive
+- capi-based auth... need cookies then?
 - deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
 - https for head.no.de
 - "POST /api/repos/:repo": Error if repo names don't match. Error if

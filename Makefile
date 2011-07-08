@@ -74,6 +74,8 @@ tmp:
 
 run: tmp 
 	support/devrun.sh
+redis-cli:
+	deps/redis/src/redis-cli -p 6401
 
 docs:
 	./support/restdown -v -b support/restdown-brand -m static/static docs/api.md
