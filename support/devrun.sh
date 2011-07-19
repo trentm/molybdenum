@@ -56,12 +56,12 @@ ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 echo "== start redis (tmp/redis.log)"
 $ROOT/deps/redis/src/redis-server $ROOT/support/redis.conf
 
-echo "== start hub (tmp/hub.log)"
-${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/hub.log 2>&1 &
+echo "== start molybdenum (tmp/molybdenum.log)"
+${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/molybdenum.log 2>&1 &
 sleep 1
 
 echo "== tail the logs ..."
-#multitail -f $ROOT/tmp/redis.log $ROOT/tmp/hub.log
-tail -f $ROOT/tmp/hub.log
+#multitail -f $ROOT/tmp/redis.log $ROOT/tmp/molybdenum.log
+tail -f $ROOT/tmp/molybdenum.log
 
 cleanup

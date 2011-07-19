@@ -66,7 +66,8 @@ function createApp(opts, config) {
     auth.authenticate(username, password, cb);
   });
   var skipAuthPaths = {
-    "/logout": true
+    "/logout": true,
+    "/api/ping": true
   };
   function authMiddleware(req, res, next) {
     if (skipAuthPaths[req.url] !== undefined) {
@@ -756,7 +757,7 @@ db = (function() {
   function Repository(name, url) {
     this.name = name;
     if (url.indexOf('@') == -1 && Path.existsSync(url)) {
-      url = absPath(url);
+      url = Path.resolve(url);
     }
     this.url = url;
     this.dir = Path.join(config.reposDir, name + ".git");
@@ -1572,22 +1573,10 @@ function getVersion() {
 }
 
 
-function absPath(p, relativeTo) {
-  // Node 0.4.0 has `Path.resolve`. Switch to that when can.
-  if (p[0] !== '/') {
-    if (typeof(relativeTo) === "undefined") {
-      relativeTo = process.cwd();
-    }
-    p = relativeTo + '/' + p;
-  }
-  return p;
-}
-
 function createDataArea(config) {
   if (!config.dataDir) {
     throw("no 'dataDir' config variable");
   }
-  config.dataDir = absPath(config.dataDir);
   console.log("Setup data dir, '"+config.dataDir+"'.")
   if (! Path.existsSync(config.dataDir)) {
     throw("configured dataDir, '"+config.dataDir+"' does not exist");
@@ -1603,9 +1592,10 @@ function createDataArea(config) {
   fs.mkdirSync(config.tmpDir, 0755);
 }
 
+
 function createPidFile(config) {
   // Create a PID file.
-  var pidFile = config && config.pidFile && absPath(config.pidFile);
+  var pidFile = config && config.pidFile;
   if (pidFile) {
     // Limitation, doesn't do "mkdir -p", so only one dir created.
     if (! Path.existsSync(Path.dirname(pidFile))) {
@@ -1616,11 +1606,58 @@ function createPidFile(config) {
   return pidFile;
 }
 
+
 function deletePidFile(config) {
-  var pidFile = config && config.pidFile && absPath(config.pidFile);
+  var pidFile = config && config.pidFile;
   if (pidFile && Path.existsSync(pidFile)) {
     fs.unlinkSync(pidFile);
   }
+}
+
+
+function loadConfig(configPath) {
+  var config;
+  
+  var pathVarsRelativeToConfigFile = ["authStaticFile"];
+  var pathVarsRelativeToCwd = ["dataDir", "pidFile"];
+  
+  // Resolve relative paths in vars.
+  function resolveRelativePathVars(config, configDir) {
+    pathVarsRelativeToConfigFile.forEach(function (name) {
+      if (config[name] && config[name][0] !== '/') {
+        config[name] = Path.resolve(configDir, config[name]);
+      }
+    });
+    var cwd = process.cwd;
+    pathVarsRelativeToCwd.forEach(function (name) {
+      if (config[name] && config[name][0] !== '/') {
+        config[name] = Path.resolve(cwd, config[name]);
+      }
+    });
+  }
+  
+  var defaultConfigPath = __dirname + '/default-config/molybdenum.ini';
+  log("Loading default config from '" + defaultConfigPath + "'.");
+  config = iniparser.parseSync(defaultConfigPath);
+  resolveRelativePathVars(config, Path.dirname(defaultConfigPath));
+  
+  if (! configPath) {
+    configPath = process.env.MOLYBDENUM_CONFIG;
+  }
+  if (configPath) {
+    if (! Path.existsSync(configPath)) {
+      log("Config file not found: '" + configPath + "' does not exist. Aborting.");
+      return 1;
+    }
+    log("Loading additional config from '" + configPath + "'.");
+    var extraConfig = iniparser.parseSync(configPath);
+    for (var name in extraConfig) {
+      config[name] = extraConfig[name];
+    }
+    resolveRelativePathVars(config, Path.dirname(configPath));
+  }
+  
+  return config;
 }
 
 
@@ -1635,31 +1672,15 @@ function internalMainline(argv) {
     return 0;
   }
   if (opts.version) {
-    sys.puts("hub " + getVersion());
+    sys.puts("molybdenum " + getVersion());
     return 0;
   }
 
-  // Config loading.
-  var defaultConfigPath = __dirname + '/default-config/hub.ini';
-  log("Loading default config from '" + defaultConfigPath + "'.");
   // `config` is intentionally global.
-  config = iniparser.parseSync(defaultConfigPath);
-  var configPath = opts.configPath;
-  if (! configPath) {
-    configPath = process.env.HUB_CONFIG;
-  }
-  if (configPath) {
-    if (! Path.existsSync(configPath)) {
-      warn("No config file found: '" + configPath + "' does not exist. Aborting.");
-      return 1;
-    }
-    log("Loading additional config from '" + configPath + "'.");
-    var extraConfig = iniparser.parseSync(configPath);
-    for (var name in extraConfig) {
-      config[name] = extraConfig[name];
-    }
-  }
-  //warn(config)
+  config = loadConfig(opts.configPath);
+  assert.ok(Path.existsSync(config.dataDir),
+    "Data dir '"+config.dataDir+"' does not exist.");
+  //log(config)
 
   // Setup
   var pidFile = createPidFile(config);

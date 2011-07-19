@@ -8,8 +8,10 @@ var path = require('path');
 var sys  = require('sys');
 var exec = require('child_process').exec;
 var fs   = require('fs');
+var base64 = require('base64')
 var testCase = require('nodeunit').testCase;
 var request = require('request');
+
 var log = console.warn;
 
 
@@ -17,7 +19,10 @@ var testData = {
   "GET /api # HTML": function(test) {
     request({
           uri: 'http://localhost:3334/api',
-          headers: {"Accept": "text/html"}
+          headers: {
+            "Accept": "text/html",
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
         }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
@@ -28,17 +33,26 @@ var testData = {
     });
   },
   "GET /api # JSON": function(test) {
-    request({uri:'http://localhost:3334/api'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       var data = JSON.parse(body);
       test.ok(data.endpoints);
-      test.ok(data.version);
       test.done();
     });
   },
 
   "GET /api/repos": function(test) {
-    request({uri:'http://localhost:3334/api/repos'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       var data = JSON.parse(body);
       //log(body)
@@ -50,7 +64,12 @@ var testData = {
   },
 
   "GET /api/repos/:repo": function(test) {
-    request({uri:'http://localhost:3334/api/repos/eol'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -65,7 +84,12 @@ var testData = {
   //},
 
   "GET /api/repos/:repo/refs": function(test) {
-    request({uri:'http://localhost:3334/api/repos/eol/refs'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/refs',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -80,7 +104,12 @@ var testData = {
 
   // GET /api/repos/:repo/refs/:ref[/:path]
   "GET /api/repos/:repo/refs/:ref": function(test) {
-    request({uri:'http://localhost:3334/api/repos/eol/refs/master'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/refs/master',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -94,7 +123,12 @@ var testData = {
     });
   },
   "GET /api/repos/:repo/refs/:ref  # tag": function(test) {
-    request({uri:'http://localhost:3334/api/repos/eol/refs/0.7.2'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/refs/0.7.2',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -111,7 +145,12 @@ var testData = {
 
   "GET /api/repos/:repo/commit/:id  # sha1": function(test) {
     var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915"
-    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/commit/'+id,
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -126,7 +165,12 @@ var testData = {
   },
   "GET /api/repos/:repo/commit/:id  # sha1 prefix": function(test) {
     var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915";
-    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id.slice(0, 8)}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/commit/'+id.slice(0, 8),
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -141,7 +185,12 @@ var testData = {
   },
   "GET /api/repos/:repo/commit/:id  # non-existant sha1": function(test) {
     var id = "abcdef";
-    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/commit/'+id,
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 404);
       //log(body)
       var data = JSON.parse(body);
@@ -153,7 +202,12 @@ var testData = {
   },
   "GET /api/repos/:repo/commit/:id  # not head sha1": function(test) {
     var id = "86fb0c2c2c37e71c218d386cc3f167496ce98c57"
-    request({uri:'http://localhost:3334/api/repos/eol/commit/'+id}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/commit/'+id,
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -167,7 +221,12 @@ var testData = {
   },
   "GET /api/repos/:repo/commit/:id  # ref": function(test) {
     var id = "1a071c8728d57845ed76de67b8e0cbf2caa63915"
-    request({uri:'http://localhost:3334/api/repos/eol/commit/master'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/api/repos/eol/commit/master',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
@@ -190,7 +249,12 @@ var testData = {
   //TODO: all the other non-api endpoints
 
   "GET /:repo/tree/:ref  # tag": function(test) {
-    request({uri:'http://localhost:3334/eol/tree/0.7.2'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/tree/0.7.2',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       test.ok(body.indexOf("/eol/tree/0.7.2/lib") != -1)
@@ -199,7 +263,12 @@ var testData = {
     });
   },
   "GET /:repo/tree/:ref/:path  # tag": function(test) {
-    request({uri:'http://localhost:3334/eol/tree/0.7.2/lib'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/tree/0.7.2/lib',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       test.ok(body.indexOf("/eol/blob/0.7.2/lib/eol.py") != -1)
@@ -207,7 +276,12 @@ var testData = {
     });
   },
   "GET /:repo/blob/:ref/:path  # tag": function(test) {
-    request({uri:'http://localhost:3334/eol/blob/0.7.2/lib/eol.py'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/tree/0.7.2/lib/eol.py',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 200);
       //log(body)
       test.ok(body.indexOf("/eol/raw/0.7.2/lib/eol.py") != -1)
@@ -217,28 +291,48 @@ var testData = {
   },
 
   "GET /:repo/blob/:ref/:path  # 404": function(test) {
-    request({uri:'http://localhost:3334/eol/blob/0.7.2x/lib/eol.py'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/blob/0.7.2x/lib/eol.py',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 404);
       test.ok(body.indexOf("404") != -1)
       test.done();
     });
   },
   "GET /:repo/blob/:ref/:path  # 404 also": function(test) {
-    request({uri:'http://localhost:3334/eol/blob/0.7.2/lib/doesnotexist.py'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/blob/0.7.2/lib/doesnotexist.py',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 404);
       test.ok(body.indexOf("404") != -1)
       test.done();
     });
   },
   "GET /:repo/tree/:ref/:path  # 404": function(test) {
-    request({uri:'http://localhost:3334/eol/tree/0.7.2x/lib'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/blob/0.7.2x/lib',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 404);
       test.ok(body.indexOf("404") != -1)
       test.done();
     });
   },
   "GET /:repo/tree/:ref/:path  # 404 also": function(test) {
-    request({uri:'http://localhost:3334/eol/tree/0.7.2/doesnotexist'}, function (error, response, body) {
+    request({
+          uri:'http://localhost:3334/eol/blob/0.7.2/doesnotexist',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
       test.equal(response.statusCode, 404);
       test.ok(body.indexOf("404") != -1)
       test.done();
