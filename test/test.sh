@@ -49,7 +49,7 @@ cd ${ROOT}/test
 
 echo "== start redis"
 mkdir -p tmp
-[[ -e tmp/redis.pid ]] && kill `cat tmp/redis.pid` && sleep 1 || true
+[[ -e ${TMP}/redis.pid ]] && kill `cat ${TMP}/redis.pid` && sleep 1 || true
 $ROOT/deps/redis/src/redis-server $ROOT/test/redis.conf
 
 echo "== start molybdenum"
