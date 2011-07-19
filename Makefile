@@ -45,7 +45,7 @@ help:
 	@echo "all: build all (most dependencies)"
 	@echo "docs: rebuild the docs"
 	@echo "test: run the test suite"
-	@echo "run: run a local development Hub"
+	@echo "run: run a local development Molybdenum"
 
 all:: deps
 

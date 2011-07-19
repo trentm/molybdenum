@@ -1,10 +1,10 @@
 {
-  "name": "hub",
+  "name": "molybdenum",
   "description": "a source browser for your git repos",
   "version": "0.1.0",
   "repository": {
     "type": "git",
-    "url": "git@github.com:trentm/hub.git"
+    "url": "git@github.com:trentm/molybdenum.git"
   },
   "private": true,
   "contributors": [

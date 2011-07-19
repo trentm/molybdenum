@@ -1,10 +1,10 @@
 /*
- * JS for the hub site.
+ * JS for the molybdenum app.
  *
  * Presumes that jquery has already been loaded.
  */
 
-var Hub = (function() {
+var Molybdenum = (function() {
 
   var linesRe = /^#L(\d+)(-(\d+))?$/;
 
@@ -50,7 +50,7 @@ var Hub = (function() {
       } else {
         document.location.hash = rel;
       }
-      Hub.highlightCodeLines();
+      Molybdenum.highlightCodeLines();
     }
 
   };

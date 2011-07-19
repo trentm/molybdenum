@@ -1,8 +1,8 @@
 ---
-title: Hub API
+title: Molybdenum API
 ---
 
-# Hub API and Sitemap
+# Molybdenum API and Sitemap
 
 ### All API calls start with
 
@@ -26,7 +26,7 @@ you are reading).
             "name": $name
           }
           // The following are optional. Just including the above would be
-          // typical for a POST to create a new repo entry in the hub.
+          // typical for a POST to create a new repo entry in the molybdenum server.
           "before": $before_sha,
           "after": $after_sha,
           "ref": $ref
@@ -124,7 +124,7 @@ on the request "Accept" header.
 
 ## GET /api/repos
 
-List all repositories currently in the hub. (TODO: add paging)
+List all repositories currently in the molybdenum server. (TODO: add paging)
 
 #### example request
 
@@ -137,7 +137,7 @@ List all repositories currently in the hub. (TODO: add paging)
         {
           "name": "eol",
           "url": "https://github.com/trentm/eol.git",
-          "dir": "/data/hub/repos/eol.git",
+          "dir": "/data/molybdenum/repos/eol.git",
           // Note: The following are internal. Will probably be removed.
           "isCloned": true,
           "isFetchPending": false,
@@ -150,7 +150,7 @@ List all repositories currently in the hub. (TODO: add paging)
 
 ## GET /api/repos/:repo
 
-Return info on all current repositories in the hub.
+Return info on all current repositories in the molybdenum server.
 
 #### example request
 
@@ -162,7 +162,7 @@ Return info on all current repositories in the hub.
       "repository": {
         "name": "eol",
         "url": "https://github.com/trentm/eol.git",
-        "dir": "/data/hub/repos/eol.git",
+        "dir": "/data/molybdenum/repos/eol.git",
         ...
       }
     }
@@ -182,7 +182,7 @@ Return info on all current repositories in the hub.
 
 ## PUT /api/repos/:repo
 
-Let the hub know about a new push to a repo. The request body must be a JSON
+Let the server know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
 hook JSON format <http://help.github.com/post-receive-hooks/>):
 

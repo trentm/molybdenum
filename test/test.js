@@ -1,4 +1,4 @@
-/* 'hub' test suite
+/* 'molybdenum' test suite
  *
  * Usage:
  *      nodeunit test.js
@@ -27,8 +27,8 @@ var testData = {
       test.equal(response.statusCode, 200);
       //log(body)
       test.ok(body.indexOf("<html") != -1, "no <html")
-      test.ok(body.indexOf("Hub API Documentation") != -1,
-        "no 'Hub API Documentation'")
+      test.ok(body.indexOf("Molybdenum API Documentation") != -1,
+        "no 'Molybdenum API Documentation'")
       test.done();
     });
   },

@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2011 Trent Mick.
 #
-# Convenience wrapper for calling Hub API.
+# Convenience wrapper for calling Molybdenum API.
 #
 
 #export PS4='${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
@@ -26,21 +26,21 @@ fi
 shift;
 
 #XXX hard code for now
-HUB_URL=http://0.0.0.0:3333
+MOLYBDENUM_URL=http://0.0.0.0:3333
 
 # Get config/environment data.
-if [[ -z "$HUB_URL" ]]; then
-    echo "error: could not determine Hub URL, set 'HUB_URL' envvar"
+if [[ -z "$MOLYBDENUM_URL" ]]; then
+    echo "error: could not determine Molybdenum URL, set 'MOLYBDENUM_URL' envvar"
     exit 1
 fi
 JSON=$(which json 2>/dev/null || true)
 
 
 # Note: the 'echo' doesn't show the real quoting of args.
-[ "$verbose" == "1" ] && echo "# curl -sS --url $HUB_URL$path $@" >&2
+[ "$verbose" == "1" ] && echo "# curl -sS --url $MOLYBDENUM_URL$path $@" >&2
 if [[ ! -x "$JSON" ]]; then
-    curl -sS --url "$HUB_URL$path" "$@"
+    curl -sS --url "$MOLYBDENUM_URL$path" "$@"
     echo ""
 else
-    curl -sS --url "$HUB_URL$path" "$@" | json -q
+    curl -sS --url "$MOLYBDENUM_URL$path" "$@" | json -q
 fi

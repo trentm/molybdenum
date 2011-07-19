@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Setup and run all the Hub components with a dev configuration.
+# Setup and run all the Molybdenum components with a dev configuration.
 # If you have `multitail` it will tail the redis and main server logs.
 #
 # Usage:
@@ -45,7 +45,7 @@ trap 'errexit $? $LINENO' EXIT
 
 HUB_INI_PATH=$1
 if [[ ! -f "$HUB_INI_PATH" ]]; then
-    fatal "Hub ini path '${HUB_INI_PATH}' does not exist."
+    fatal "Molybdenum ini path '${HUB_INI_PATH}' does not exist."
 fi
 
 echo "== preclean"

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Setup and run the Hub test suite.
+# Setup and run the Molybdenum test suite.
 #
 # Usage:
 #   make test

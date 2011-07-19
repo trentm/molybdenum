@@ -2,7 +2,7 @@
 
 /* Copyright 2011 (c) Trent Mick.
  *
- * Hub server -- a tree view for git repos.
+ * Molybdenum server -- a tree view for git repos.
  *
  * Usage:
  *    node app.js
@@ -747,7 +747,7 @@ function createApp(opts, config) {
 db = (function() {
 
   /**
-   * Repository object for each repo in the hub.
+   * Repository object for each repo in the server.
    * @argument {String} name is the repository name (and base dir).
    * @argument {String} url is the the clone URL for the repository.
    *
@@ -1494,7 +1494,7 @@ function asyncForEach (list, fn, cb) {
 function printHelp() {
   sys.puts("Usage: node app.js [OPTIONS]");
   sys.puts("");
-  sys.puts("The Hub server.");
+  sys.puts("The molybdenum server: a git repo browser.");
   sys.puts("");
   sys.puts("Options:");
   sys.puts("  -h, --help    print this help info and exit");
@@ -1703,7 +1703,7 @@ function internalMainline(argv) {
   var app = createApp(opts, config);
   app.listen(config.port, config.host);
   if (! opts.quiet) {
-    console.log('Hub listening on <http://' + app.address().address
+    console.log('Molybdenum listening on <http://' + app.address().address
       + ':' + app.address().port + '/> (' + app.set('env')
       + ' mode, pid file ' + (pidFile || '<none>') + ').');
   }
