@@ -38,7 +38,7 @@ REDIS_SERVER := deps/redis/src/redis-server
 # Targets
 #
 
-.PHONY: all test run help docs
+.PHONY: all test run help docs deps optional_deps
 
 help:
 	@echo "help: show this help"
@@ -54,8 +54,12 @@ all:: deps
 # Deps
 #
 
-deps: $(REDIS_SERVER)
-optional_deps: deps/node-sdc-clients
+deps: $(REDIS_SERVER) node_modules/express
+optional_deps: node_modules/sdc-clients
+
+# Using 'express' as the landmark for all node deps in package.json.
+node_modules/express:
+	npm install
 
 # Use 'Makefile' landmarks instead of the dir itself, because dir mtime
 # is that of the most recent file: results in unnecessary rebuilds.
@@ -65,9 +69,10 @@ deps/redis/Makefile:
 $(REDIS_SERVER): deps/redis/Makefile
 	(cd deps/redis && make)
 
-deps/node-sdc-clients:
-	(cd deps && git clone git@git.joyent.com:node-sdc-clients.git)
-	npm install deps/node-sdc-clients
+node_modules/sdc-clients:
+	mkdir -p node_modules
+	git clone git@git.joyent.com:node-sdc-clients.git node_modules/sdc-clients
+	(cd node_modules/sdc-clients && npm install)
 
 
 #
