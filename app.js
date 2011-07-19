@@ -60,6 +60,7 @@ var defaultView;
 
 function createApp(opts, config) {
   //-- Authentication and other setup
+
   var auth = createAuth(config);
   var basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
     auth.authenticate(username, password, cb);
@@ -75,7 +76,9 @@ function createApp(opts, config) {
     }
   }
   
+
   //-- Configure app
+
   var app = express.createServer(
     // 'favicon' above 'logger' to not log favicon requests.
     express.favicon(__dirname + '/static/favicon.ico'),
@@ -83,16 +86,19 @@ function createApp(opts, config) {
     //express.conditionalGet()
   );
 
+  express.logger.token('user', function(req, res) {
+    return (req.remoteUser ? req.remoteUser.login : '-');
+  });
   app.configure('development', function(){
     if (! opts.quiet) {
-      app.use(express.logger({ format: '[:date] :status :method :url (:response-timems)' }));
+      app.use(express.logger({ format: '[:date] :status :method :url (:user, :response-time ms)' }));
     }
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   });
 
   app.configure('production', function(){
     if (! opts.quiet) {
-      app.use(express.logger({ format: '[:date] :status :method :url (:response-timems)' }));
+      app.use(express.logger({ format: '[:date] :status :method :url (:response-time ms)' }));
     }
     app.use(express.errorHandler());
   });
