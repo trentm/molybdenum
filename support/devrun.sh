@@ -4,7 +4,7 @@
 # If you have `multitail` it will tail the redis and main server logs.
 #
 # Usage:
-#   support/devrun.sh
+#   support/devrun.sh HUB-INI-PATH
 #
 
 if [ "$DEBUG" != "" ]; then
@@ -34,7 +34,7 @@ function errexit {
 
 function cleanup {
     echo "== cleanup"
-    kill `cat $ROOT/tmp/dev-redis.pid`
+    kill `cat $ROOT/tmp/redis.pid`
     ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 }
 
@@ -43,20 +43,25 @@ function cleanup {
 
 trap 'errexit $? $LINENO' EXIT
 
+HUB_INI_PATH=$1
+if [[ ! -f "$HUB_INI_PATH" ]]; then
+    fatal "Hub ini path '${HUB_INI_PATH}' does not exist."
+fi
+
 echo "== preclean"
 mkdir -p tmp/data
-[[ -e $ROOT/tmp/dev-redis.pid ]] && kill `cat $ROOT/tmp/dev-redis.pid` && sleep 1 || true
+[[ -e $ROOT/tmp/redis.pid ]] && kill `cat $ROOT/tmp/redis.pid` && sleep 1 || true
 ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 
-echo "== start redis (tmp/dev-redis.log)"
-$ROOT/deps/redis/src/redis-server $ROOT/support/dev-redis.conf
+echo "== start redis (tmp/redis.log)"
+$ROOT/deps/redis/src/redis-server $ROOT/support/redis.conf
 
-echo "== start hub (tmp/dev-hub.log)"
-${NODE_DEV} $ROOT/app.js -c $ROOT/support/dev-hub.ini > $ROOT/tmp/dev-hub.log 2>&1 &
+echo "== start hub (tmp/hub.log)"
+${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/hub.log 2>&1 &
 sleep 1
 
 echo "== tail the logs ..."
-#multitail -f $ROOT/tmp/dev-redis.log $ROOT/tmp/dev-hub.log
-tail -f $ROOT/tmp/dev-hub.log
+#multitail -f $ROOT/tmp/redis.log $ROOT/tmp/hub.log
+tail -f $ROOT/tmp/hub.log
 
 cleanup

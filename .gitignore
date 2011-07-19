@@ -5,3 +5,5 @@
 /data
 /test/tmp
 /node_modules
+/dev.ini
+/deps/node-sdc-clients

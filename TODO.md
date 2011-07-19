@@ -7,6 +7,7 @@
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
 - better name. bluelight? no reason. head? shed (little place with some tools)?
+  molybdenum (element 42, "Mo" for short, "more" coloquial :)
 - Verify this: make gitteh build on solaris:
   https://github.com/libgit2/libgit2/pull/138
 - GET /:repo/commits?page=n

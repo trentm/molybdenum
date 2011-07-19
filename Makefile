@@ -55,6 +55,7 @@ all:: deps
 #
 
 deps: $(REDIS_SERVER)
+optional_deps: deps/node-sdc-clients
 
 # Use 'Makefile' landmarks instead of the dir itself, because dir mtime
 # is that of the most recent file: results in unnecessary rebuilds.
@@ -63,6 +64,10 @@ deps/redis/Makefile:
 
 $(REDIS_SERVER): deps/redis/Makefile
 	(cd deps/redis && make)
+
+deps/node-sdc-clients:
+	(cd deps && git clone git@git.joyent.com:node-sdc-clients.git)
+	npm install deps/node-sdc-clients
 
 
 #
@@ -73,7 +78,14 @@ tmp:
 	mkdir -p tmp
 
 run: tmp 
-	support/devrun.sh
+	@if [ ! -f dev.ini ]; then \
+	    echo "error: 'dev.ini' does not exist."; \
+	    echo " - Create it: 'cp support/dev.ini.in dev.ini'"; \
+	    echo " - Optionally tweak settings (e.g. auth)."; \
+	    echo " - Re-run 'make run'."; \
+	    exit 1; \
+	fi
+	support/devrun.sh dev.ini
 redis-cli:
 	deps/redis/src/redis-cli -p 6401
 

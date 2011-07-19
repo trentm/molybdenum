@@ -17,7 +17,6 @@ var sys = require('sys');
 var Path = require('path');
 var child_process = require('child_process');
 var assert = require('assert');
-var path = require('path');
 var http = require('http');
 
 var gitteh = require('gitteh');
@@ -28,6 +27,8 @@ var _ = require('underscore');
 var mime = require('mime');
 var hashlib = require('hashlib');
 var rimraf = require('rimraf');
+
+var createAuth = require('./lib/auth').createAuth;
 
 
 
@@ -58,6 +59,22 @@ var defaultView;
 //---- app
 
 function createApp(opts, config) {
+  //-- Authentication and other setup
+  var auth = createAuth(config);
+  var basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
+    auth.authenticate(username, password, cb);
+  });
+  var skipAuthPaths = {
+    "/logout": true
+  };
+  function authMiddleware(req, res, next) {
+    if (skipAuthPaths[req.url] !== undefined) {
+      next();
+    } else {
+      basicAuthMiddleware(req, res, next);
+    }
+  }
+  
   //-- Configure app
   var app = express.createServer(
     // 'favicon' above 'logger' to not log favicon requests.
@@ -78,6 +95,11 @@ function createApp(opts, config) {
       app.use(express.logger({ format: '[:date] :status :method :url (:response-timems)' }));
     }
     app.use(express.errorHandler());
+  });
+
+  app.configure(function() {
+    //app.use(basicAuthMiddleware);
+    app.use(authMiddleware);
   });
 
 
@@ -325,6 +347,19 @@ function createApp(opts, config) {
 
 
   //---- HTML Routes
+
+  // Hack endpoint to force browser to drop basic-auth creds. You have
+  // to hit this, escape out of the auth modal dialog, then *manually*
+  // go to one of the real URLs.
+  // TODO: investigate possible hacks with JS (XHR), track multiple
+  //    requests to this from same browser and redirect to '/' on second
+  //    one, or frames or something. Perhaps this:
+  //    <http://trac-hacks.org/wiki/TrueHttpLogoutPatch>
+  app.get('/logout', function(req, res) {
+    res.statusCode = 401;
+    res.setHeader('WWW-Authenticate', 'Basic realm="Authorization Required"');
+    res.end("Unauthorized")
+  });
 
   app.get('/', function(req, res) {
     var view = {
@@ -1262,7 +1297,7 @@ function syntaxHighlight(content, filename, callback) {
   }
 
   var argv = [
-    path.join(__dirname, "deps", "pyg.py"),
+    Path.join(__dirname, "deps", "pyg.py"),
     filename,
     "-"
   ];
