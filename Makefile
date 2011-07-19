@@ -15,23 +15,15 @@ NODEDIR = $(TOP)/deps/node-install
 # Tools
 MAKE = make
 TAR = tar
+CC = gcc
 UNAME := $(shell uname)
 ifeq ($(UNAME), SunOS)
 	MAKE = gmake
 	TAR = gtar
-	CC = gcc
-	CCFLAGS	= -fPIC -g -Wall
-	LDFLAGS	= -static-libgcc
-	LIBS = -lpthread -lzonecfg -L/lib -lnsl -lsocket
 endif
 
-NODE := $(NODEDIR)/bin/node
-NODE_WAF := $(NODEDIR)/bin/node-waf
-NPM_ENV := npm_config_cache=$(shell echo $(TOP)/tmp/npm-cache) npm_config_tar=$(TAR) PATH=$(NODEDIR)/bin:$$PATH
-NPM := $(NPM_ENV) $(NODEDIR)/bin/npm
-NODE_DEV := PATH=$(NODEDIR)/bin:$$PATH node-dev
 REDIS_SERVER := deps/redis/src/redis-server
-
+NPM := npm_config_tar=$(TAR) npm
 
 
 #
@@ -59,7 +51,7 @@ optional_deps: node_modules/sdc-clients
 
 # Using 'express' as the landmark for all node deps in package.json.
 node_modules/express:
-	npm install
+	$(NPM) install
 
 # Use 'Makefile' landmarks instead of the dir itself, because dir mtime
 # is that of the most recent file: results in unnecessary rebuilds.
@@ -67,12 +59,12 @@ deps/redis/Makefile:
 	(GIT_SSL_NO_VERIFY=1 git submodule update --init)
 
 $(REDIS_SERVER): deps/redis/Makefile
-	(cd deps/redis && make)
+	(cd deps/redis && CC=$(CC) $(MAKE))
 
 node_modules/sdc-clients:
 	mkdir -p node_modules
 	git clone git@git.joyent.com:node-sdc-clients.git node_modules/sdc-clients
-	(cd node_modules/sdc-clients && npm install)
+	(cd node_modules/sdc-clients && $(NPM) install)
 
 
 #
@@ -98,7 +90,7 @@ docs:
 	./support/restdown -v -b support/restdown-brand -m static/static docs/api.md
 
 test:
-	(cd test && make test)
+	(cd test && $(MAKE) test)
 
 clean:
 	TODO:clean
