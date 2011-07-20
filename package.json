@@ -22,6 +22,10 @@
     "rimraf": "1.0",
     "hashlib": "1.0.0"
   },
+  "hackedDependencies": {
+    "mustache": "0.3.1-dev plus https://github.com/janl/mustache.js/issues/48 whitespace fix",
+    "gitteh": "0.1 pre-built for smartos if/until https://github.com/libgit2/node-gitteh/issues/16"
+  },
   "scripts": {
     "start": "node ./app.js"
   },
