@@ -20,7 +20,7 @@
     "underscore": "1.1",
     "redis": "0.6",
     "rimraf": "1.0",
-    "hashlib": "1.0.0"
+    "trentm-hashlib": "1.0.1"
   },
   "hackedDependencies": {
     "mustache": "0.3.1-dev plus https://github.com/janl/mustache.js/issues/48 whitespace fix"

@@ -25,7 +25,7 @@ var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
 var _ = require('underscore');
 var mime = require('mime');
-var hashlib = require('hashlib');
+var hashlib = require('trentm-hashlib');
 var rimraf = require('rimraf');
 
 var createAuth = require('./lib/auth').createAuth;
