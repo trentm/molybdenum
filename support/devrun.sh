@@ -34,7 +34,7 @@ function errexit {
 
 function cleanup {
     echo "== cleanup"
-    kill `cat $ROOT/tmp/redis.pid`
+    [[ -e $ROOT/tmp/redis.pid ]] && kill `cat $ROOT/tmp/redis.pid`
     ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 }
 
@@ -53,8 +53,8 @@ mkdir -p tmp/data
 [[ -e $ROOT/tmp/redis.pid ]] && kill `cat $ROOT/tmp/redis.pid` && sleep 1 || true
 ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 
-echo "== start redis (tmp/redis.log)"
-$ROOT/deps/redis/src/redis-server $ROOT/support/redis.conf
+#echo "== start redis (tmp/redis.log)"
+#$ROOT/deps/redis/src/redis-server $ROOT/support/redis.conf
 
 echo "== start molybdenum (tmp/molybdenum.log)"
 ${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/molybdenum.log 2>&1 &

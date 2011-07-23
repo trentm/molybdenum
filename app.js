@@ -19,7 +19,7 @@ var child_process = require('child_process');
 var assert = require('assert');
 var http = require('http');
 
-var gitteh = require('gitteh');
+var git = require('git');
 var chaingang = require(__dirname + '/node_modules/chain-gang/lib/index.js');
 var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
@@ -78,6 +78,8 @@ function createApp(opts, config) {
   }
   
 
+
+
   //-- Configure app
 
   var app = express.createServer(
@@ -99,7 +101,7 @@ function createApp(opts, config) {
 
   app.configure('production', function(){
     if (! opts.quiet) {
-      app.use(express.logger({ format: '[:date] :status :method :url (:response-time ms)' }));
+      app.use(express.logger({ format: '[:date] :status :method :url (:user, :response-time ms)' }));
     }
     app.use(express.errorHandler());
   });
@@ -181,18 +183,17 @@ function createApp(opts, config) {
 
   // GET /api/repos/:repo/refs
   app.get('/api/repos/:repo/refs', function(req, res) {
-    var repo = db.repoFromName[req.params.repo];
-    if (repo === undefined) {
+    var moRepo = db.repoFromName[req.params.repo];
+    if (moRepo === undefined) {
       jsonErrorResponse(res, "no such repo: '"+req.params.repo+"'", 404);
     } else {
-      var data = {};
-      repo.refs(function(err, refs, branches, tags) {
+      moRepo.refs(function(err, refs) {
         if (err) {
           jsonErrorResponse(res, "error getting refs for repo: '"+name+"'",
             500, err);
           return;
         }
-        jsonResponse(res, {refs: refs, branches: branches, tags: tags});
+        jsonResponse(res, refs);
       })
     }
   });
@@ -200,152 +201,66 @@ function createApp(opts, config) {
   // GET /api/repos/:repo/commit/:commitish-or-ref
   app.get('/api/repos/:repo/commit/:id', function(req, res) {
     // 1. Determine the repo.
-    var repo = db.repoFromName[req.params.repo];
-    if (repo === undefined) {
+    var moRepo = db.repoFromName[req.params.repo];
+    if (moRepo === undefined) {
       jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
       return;
     }
     //TODO:XXX: handle the repo still cloning.
 
-    // 2. Determine the full ref string.
-    repo.refs(function(err, refs, branches, tags) {
+    var id = req.params.id;
+    moRepo.commit(id, function(err, commit) {
       if (err) {
-        jsonErrorResponse(res,
-          "error getting refs for repo '"+repo.name+"'", 500, err);
-        return;
+        return jsonErrorResponse(res,
+          "error getting commit '"+id+"' for repo '"+moRepo.name+"'", 500, err);
       }
-      var refString;
-      // If there is a tag and head with the same name, the tag wins here.
-      // TODO: is that reasonable?
-      if (tags.indexOf(req.params.id) != -1) {
-        refString = 'refs/tags/' + req.params.id;
-      } else if (branches.indexOf(req.params.id) != -1) {
-        refString = 'refs/heads/' + req.params.id;
-      } else {
-        // Must be a commitish.
-        refString = req.params.id;
+      if (!commit) {
+        return jsonErrorResponse(res, "commit '"+id+"' not found", 404);
       }
-
-      // 3. Get the data for this repo, refString and path.
-      getGitObject(repo, refString, "commit", null, function(err, commit) {
-        if (err) {
-          if (err.errno == process.ENOENT) {
-            jsonErrorResponse(res, "commit or ref '"+refString+"' not found", 404);
-          } else {
-            jsonErrorResponse(res,
-              "error getting git commit: repo='"+repo.name+"' ref='"+refString+"'",
-              500, err);
-          }
-          return;
-        }
-        jsonResponse(res, commit);
-      });
+      jsonResponse(res, {commit: commit});
     });
   });
 
   // GET /api/repos/:repo/refs/:ref[/:path]
   app.get(/^\/api\/repos\/([^\/]+)\/refs\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
-    var refSuffix = req.params[1];
+    var ref = req.params[1];
     var path = pathFromRouteParam(req.params[2]);
 
     // 1. Determine the repo.
-    var repo = db.repoFromName[name];
-    if (repo === undefined) {
-      jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
-      return;
+    var moRepo = db.repoFromName[name];
+    if (moRepo === undefined) {
+      return jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
     }
     //TODO:XXX: handle the repo still cloning.
 
-    // 2. Determine the full ref string.
-    repo.refs(function(err, refs, branches, tags) {
+    moRepo.blobOrTree(ref, path, function (err, blobOrTree) {
       if (err) {
-        jsonErrorResponse(res,
-          "error getting tags for repo '"+repo.name+"'", 500, err);
-        return;
+        return jsonErrorResponse(res,
+          "error getting '"+path+"' from repo '"+moRepo.name+"' (ref '"+ref+"')",
+          500, err);
       }
-      var refString;
-      // If there is a tag and head with the same name, the tag wins here.
-      // TODO: is that reasonable?
-      if (tags.indexOf(refSuffix) != -1) {
-        refString = 'refs/tags/' + refSuffix;
-      } else if (branches.indexOf(refSuffix) != -1) {
-        refString = 'refs/heads/' + refSuffix;
+      blobOrTree.ref = ref;
+      blobOrTree.path = path;
+      if (blobOrTree.tree) {
+        blobOrTree.type = "tree"
       } else {
-        jsonErrorResponse(res, "unknown branch or tag: '"+refSuffix+"'", 404);
-        return;
+        blobOrTree.type = "blob"
+        blobOrTree.blob.looksLikeUtf8 = looksLikeUtf8(blobOrTree.blob.data);
+        blobOrTree.blob.data = base64_encode(blobOrTree.blob.data)
       }
-
-      // 3. Get the data for this repo, refString and path.
-      getGitObject(repo, refString, "entry", path, function(err, obj) {
-        if (err) {
-          // Pattern matching the error string is insane here... but.
-          if (err.error && /'.*?' not found/.test(err.error)) {
-            jsonErrorResponse(res, err.error, 404);
-          } else {
-            jsonErrorResponse(res,
-              "error getting git object: repo='"+repo.name+"' ref='"+refString+"' path='"+path+"'",
-              500, err);
-          }
-          return;
-        }
-        if (obj.tree) {
-          obj.ref = refString;
-          obj.path = path;
-          obj.type = "tree";
-          jsonResponse(res, obj);
-        } else if (obj.blob) {
-          obj.ref = refString;
-          obj.path = path;
-          obj.type = "blob";
-          obj.blob.looksLikeUtf8 = looksLikeUtf8(obj.blob.data);
-          obj.blob.data = base64_encode(obj.blob.data);
-          jsonResponse(res, obj);
-        } else {
-          jsonErrorResponse(res,
-            "unexpected git object: keys="+JSON.stringify(Object.keys(obj)), obj);
-        }
-      });
+      jsonResponse(res, blobOrTree, 200);
     });
   });
 
+
   app.get('/api/commit/:id', function(req, res) {
     var id = req.params.id;
-
-    // Lookup in cache.
-    //TODO
-
-    // Look in each repo.
-    var result = null;
-    function lookupCommit(repo, cb) {
-      if (result) {
-        return cb(null);
-      }
-      getGitObject(repo, id, "commit", null, function(err, commit) {
-        if (err) {
-          if (err.errno == process.ENOENT) {
-            cb(null);
-          } else {
-            cb("error getting git commit: repo='"+repo.name+"' id='"+id+"'");
-          }
-        } else {
-          // Current `getGitObject` will find a commit for an "id" that
-          // is a branch name. We don't want that here, so require a
-          // prefix match on the full commit id.
-          if (commit.commit.id.slice(0, id.length) === id) {
-            result = commit;
-            result.repository = repo.getPublicObject();
-          }
-          cb(null);
-        }
-      });
-    }
-
-    asyncForEach(_.values(db.repoFromName), lookupCommit, function (err) {
+    db.lookupCommit(id, function(err, moRepo, moCommit) {
       if (err) {
         jsonErrorResponse(res, "Internal error finding commit '"+id+"'.", 500);
-      } else if (result) {
-        jsonResponse(res, result, 200);
+      } else if (moCommit) {
+        jsonResponse(res, {repository: moRepo, commit: moCommit}, 200);
       } else {
         jsonErrorResponse(res, "Commit '"+id+"' not found.", 404);
       }
@@ -380,21 +295,23 @@ function createApp(opts, config) {
   // GET /:repo/tree/:ref[/:path]
   app.get(/^\/([^\/]+)(\/|\/tree\/([^\/\n]+)(\/.*?)?)?$/, function(req, res) {
     var name = req.params[0];
-    var repo = db.repoFromName[name];
-    if (repo === undefined) {
+    var moRepo = db.repoFromName[name];
+    if (moRepo === undefined) {
       mustache404Response(res, req.url);
       return;
     }
 
-    var defaultBranch = 'master'; //TODO: how to determine default branch? look at libgit2 (different default branch)
-    var refSuffix = req.params[2];
+    //TODO: How to determine default branch? look at
+    //  github.com/libgit2/libgit2 (different default branch)
+    var defaultBranch = 'master';
+    var ref = req.params[2];
     var path = pathFromRouteParam(req.params[3]);
-    if (path === '' && refSuffix === defaultBranch) {
+    if (path === '' && ref === defaultBranch) {
       res.redirect('/'+name);  //TODO: other than 301 status here?
       return;
     }
-    if (!refSuffix) {
-      refSuffix = defaultBranch;
+    if (!ref) {
+      ref = defaultBranch;
     }
 
     // Breadcrumbs.
@@ -403,7 +320,7 @@ function createApp(opts, config) {
     while (dir) {
       breadcrumbs.push({
         name: Path.basename(dir),
-        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
+        href: '/' + moRepo.name + '/tree/' + ref + '/' + dir,
         dir: true
       });
       if (dir.lastIndexOf('/') == -1) {
@@ -411,86 +328,81 @@ function createApp(opts, config) {
       }
       dir = dir.slice(0, dir.lastIndexOf('/'));
     }
-    breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
+    breadcrumbs.push({name: moRepo.name, href: '/'+moRepo.name, dir: true});
     breadcrumbs.reverse();
 
     var view = {
-      repository: repo,
+      repository: moRepo,
       breadcrumbs: breadcrumbs
     }
     if (path) {
-      view.title = path + " (" + repo.name + ") \u2014 " + config.name;
+      view.title = path + " (" + moRepo.name + ") \u2014 " + config.name;
     } else {
-      view.title = repo.name + " \u2014 " + config.name;
+      view.title = moRepo.name + " \u2014 " + config.name;
     }
 
-    repo.refs(function(err, refs, branches, tags) {
+    moRepo.refs(function(err, moRefs) {
       if (err) {
-        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
+        mustache500Response(res, "error getting refs for repo  '"+moRepo.name+"'", err);
         return;
       }
-      var refString, currTag = null, currBranch = null;
+      var currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
-      if (tags.indexOf(refSuffix) != -1) {
-        refString = 'refs/tags/' + refSuffix;
-        currTag = refSuffix;
-      } else if (branches.indexOf(refSuffix) != -1) {
-        refString = 'refs/heads/' + refSuffix;
-        currBranch = refSuffix;
+      if (moRefs.tags.indexOf(ref) != -1) {
+        currTag = ref;
+      } else if (moRefs.branches.indexOf(ref) != -1) {
+        currBranch = ref;
       } else {
         mustache404Response(res, req.url);
         return;
       }
-      view.branches = branches.map(function(b) {
+      view.branches = moRefs.branches.map(function(b) {
         return {
           name: b,
-          href: '/' + repo.name + '/tree/' + b + (path ? '/'+path : ''),
+          href: '/' + moRepo.name + '/tree/' + b + (path ? '/'+path : ''),
           isCurr: b===currBranch
         }
       });
-      view.tags = tags.map(function(t) {
+      view.tags = moRefs.tags.map(function(t) {
         return {
           name: t,
-          href: '/' + repo.name + '/tree/' + t + (path ? '/'+path : ''),
+          href: '/' + moRepo.name + '/tree/' + t + (path ? '/'+path : ''),
           isCurr: t===currTag
         }
       });
 
-      getGitObject(repo, refString, "entry", path, function(err, obj) {
+      moRepo.blobOrTree(ref, path, function(err, blobOrTree) {
         if (err) {
-          // Pattern matching the error string is insane here... but.
-          if (/'.*?' not found/.test(err.error)) {
-            mustache404Response(res, req.url);
+          if (err.httpCode == 404) {
+            return mustache404Response(res, req.url);
           } else {
-            mustache500Response(res,
-              "Error getting git object: repo='" + repo.name +
-                "' ref='" + refString + "' path='" + path + "'",
+            return mustache500Response(res,
+              "Error getting git object: repo='" + moRepo.name +
+                "' ref='" + ref + "' path='" + path + "'",
               JSON.stringify(err, null, 2));
           }
+        }
+        if (blobOrTree.tree === undefined && blobOrTree.blob !== undefined) {
+          res.redirect('/'+name+'/blob/'+ref+'/'+path);
           return;
         }
-        //TODO: redir to blob if not a tree
-        if (obj.tree === undefined && obj.blob !== undefined) {
-          res.redirect('/'+name+'/blob/'+refSuffix+'/'+path);
-          return;
-        }
-        view.entries = _(obj.tree.entries).chain()
+        view.entries = _(blobOrTree.tree.entries).chain()
           .map(function(e) {
-            var isDir = S_ISDIR(e.attributes);
+            var isDir = S_ISDIR(e.mode);
             return {
               name: e.name,
               isDir: isDir,
-              href: '/' + repo.name + '/' + (isDir ? "tree" : "blob")
-                + '/' + refSuffix + (path ? '/'+path : '') + '/' + e.name
+              href: '/' + moRepo.name + '/' + (isDir ? "tree" : "blob")
+                + '/' + ref + (path ? '/'+path : '') + '/' + e.name
             }
           })
           .sortBy(function(e) { return [!e.isDir, e.name] })
           .value();
-        if (obj.commit) {
-          viewAddCommit(view, obj.commit, repo.name, true);
+        if (blobOrTree.commit) {
+          viewAddCommit(view, blobOrTree.commit, moRepo.name, true);
         }
-        mustacheResponse(res, "tree.mustache", view);
+        return mustacheResponse(res, "tree.mustache", view);
       });
     });
   });
@@ -499,14 +411,14 @@ function createApp(opts, config) {
   // GET /:repo/raw/:ref[/:path]
   app.get(/^\/([^\/]+)\/(blob|raw)\/([^\/\n]+)(\/.*?)?$/, function(req, res) {
     var name = req.params[0];
-    var repo = db.repoFromName[name];
-    if (repo === undefined) {
+    var moRepo = db.repoFromName[name];
+    if (moRepo === undefined) {
       mustache404Response(res, req.url);
       return;
     }
 
     var mode = req.params[1];
-    var refSuffix = req.params[2];
+    var ref = req.params[2];
     var path = pathFromRouteParam(req.params[3]);
 
     // Breadcrumbs.
@@ -519,79 +431,74 @@ function createApp(opts, config) {
       dir = dir.slice(0, dir.lastIndexOf('/'));
       breadcrumbs.push({
         name: Path.basename(dir),
-        href: '/' + repo.name + '/tree/' + refSuffix + '/' + dir,
+        href: '/' + moRepo.name + '/tree/' + ref + '/' + dir,
         dir: true
       });
     }
-    breadcrumbs.push({name: repo.name, href: '/'+repo.name, dir: true});
+    breadcrumbs.push({name: moRepo.name, href: '/'+moRepo.name, dir: true});
     breadcrumbs.reverse();
 
     var view = {
-      title: path + " (" + repo.name + ") \u2014 " + config.name,
-      repository: repo,
+      title: path + " (" + moRepo.name + ") \u2014 " + config.name,
+      repository: moRepo,
       breadcrumbs: breadcrumbs
     }
 
-    repo.refs(function(err, refs, branches, tags) {
+    moRepo.refs(function(err, moRefs) {
       if (err) {
-        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
+        mustache500Response(res, "error getting refs for repo  '"+moRepo.name+"'", err);
         return;
       }
-      var refString, currTag = null, currBranch = null;
+      var currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
-      // TODO: is that reasonable?
-      if (tags.indexOf(refSuffix) != -1) {
-        refString = 'refs/tags/' + refSuffix;
-        currTag = refSuffix;
-      } else if (branches.indexOf(refSuffix) != -1) {
-        refString = 'refs/heads/' + refSuffix;
-        currBranch = refSuffix;
+      if (moRefs.tags.indexOf(ref) != -1) {
+        currTag = ref;
+      } else if (moRefs.branches.indexOf(ref) != -1) {
+        currBranch = ref;
       } else {
         mustache404Response(res, req.url);
         return;
       }
-      view.branches = branches.map(function(b) {
+      view.branches = moRefs.branches.map(function(b) {
         return {
           name: b,
-          href: '/' + repo.name + '/tree/' + b + (path ? '/'+path : ''),
+          href: '/' + moRepo.name + '/tree/' + b + (path ? '/'+path : ''),
           isCurr: b===currBranch
         }
       });
-      view.tags = tags.map(function(t) {
+      view.tags = moRefs.tags.map(function(t) {
         return {
           name: t,
-          href: '/' + repo.name + '/tree/' + t + (path ? '/'+path : ''),
+          href: '/' + moRepo.name + '/tree/' + t + (path ? '/'+path : ''),
           isCurr: t===currTag
         }
       });
 
-      getGitObject(repo, refString, "entry", path, function(err, obj) {
+
+      moRepo.blobOrTree(ref, path, function(err, blobOrTree) {
         if (err) {
-          // Pattern matching the error string is insane here... but.
-          if (/'.*?' not found/.test(err.error)) {
-            mustache404Response(res, req.url);
+          if (err.httpCode == 404) {
+            return mustache404Response(res, req.url);
           } else {
-            mustache500Response(res,
-              "Error getting git object: repo='" + repo.name +
-                "' ref='" + refString + "' path='" + path + "'",
+            return mustache500Response(res,
+              "Error getting git object: repo='" + moRepo.name +
+                "' ref='" + ref + "' path='" + path + "'",
               JSON.stringify(err, null, 2));
           }
-          return;
         }
-
-        if (obj.blob === undefined && obj.tree !== undefined) {
-          res.redirect('/'+name+'/tree/'+refSuffix+'/'+path);
+        if (blobOrTree.blob === undefined && blobOrTree.tree !== undefined) {
+          res.redirect('/'+name+'/tree/'+ref+'/'+path);
           return;
         }
         //TODO: ?
         //X-Hub-Blob-Mode:100644
         //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
         //X-Hub-Blob-Size:1288
-        //X-Hub-Blob-Type:image/gif
+        //X-Hub-Blob-Type:image/gif        
 
-        var llUtf8 = looksLikeUtf8(obj.blob.data);
+        var llUtf8 = looksLikeUtf8(blobOrTree.blob.data);
         if (mode === "raw") {
-          res.header("Content-Length", obj.blob.data.length)
+          res.header("Content-Length", blobOrTree.blob.data.length)
           res.header("X-Content-Type-Options", "nosniff")
           if (llUtf8) {
             res.header("Content-Type", "text/plain; charset=utf-8")
@@ -600,16 +507,16 @@ function createApp(opts, config) {
             var charset = mime.charsets.lookup(mimetype);
             res.setHeader('Content-Type', mimetype + (charset ? '; charset=' + charset : ''));
           }
-          res.end(obj.blob.data, "binary");
+          res.end(blobOrTree.blob.data, "binary");
         } else {
           //warn(req)
-          viewAddCommit(view, obj.commit, repo.name, true);
+          viewAddCommit(view, blobOrTree.commit, moRepo.name, true);
           view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
           var mimetype = mime.lookup(path);
           view.isImage = (mimetype.slice(0, 'image/'.length) === 'image/')
           if (llUtf8) {
             //TODO: guard against decode failure later in document
-            var text = decodeURIComponent(escape(obj.blob.data));
+            var text = decodeURIComponent(escape(blobOrTree.blob.data));
             viewAddForTextbox(view, "text", text, path, function (err) {
               if (err) {
                 mustache500Response(res, "Internal error processing view", err);
@@ -628,71 +535,67 @@ function createApp(opts, config) {
   // GET /:repo/commit/:id
   app.get('/:repo/commit/:id', function(req, res) {
     var name = req.params.repo;
-    var repo = db.repoFromName[name];
-    if (repo === undefined) {
+    var moRepo = db.repoFromName[name];
+    if (moRepo === undefined) {
       mustache404Response(res, req.url);
       return;
     }
 
     var id = req.params.id;
     var view = {
-      repository: repo
+      repository: moRepo
     };
 
-    repo.refs(function(err, refs, branches, tags) {
+    moRepo.refs(function(err, moRefs) {
       if (err) {
-        mustache500Response(res, "error getting refs for repo  '"+repo.name+"'", err);
+        mustache500Response(res, "error getting refs for repo  '"+moRepo.name+"'", err);
         return;
       }
-      var refString, currTag = null, currBranch = null;
+      var currTag = null, currBranch = null;
       // If there is a tag and head with the same name, the tag wins here.
       // TODO: is that reasonable?
-      if (tags.indexOf(id) != -1) {
-        refString = 'refs/tags/' + id;
+      if (moRefs.tags.indexOf(id) != -1) {
         currTag = id;
-      } else if (branches.indexOf(id) != -1) {
-        refString = 'refs/heads/' + id;
+      } else if (moRefs.branches.indexOf(id) != -1) {
         currBranch = id;
       } else {
         // Must be a commitish.
-        refString = id;
       }
 
-      //XXX START HERE: put "tree" in the view.branches,tags ? Another var for that.
-      view.branches = branches.map(function(b) {
+      //XXX put "tree" in the view.branches,tags ? Another var for that.
+      view.branches = moRefs.branches.map(function(b) {
         return {
           name: b,
-          href: '/' + repo.name + '/tree/' + b,
+          href: '/' + moRepo.name + '/tree/' + b,
           isCurr: b===currBranch
         }
       });
-      view.tags = tags.map(function(t) {
+      view.tags = moRefs.tags.map(function(t) {
         return {
           name: t,
-          href: '/' + repo.name + '/tree/' + t,
+          href: '/' + moRepo.name + '/tree/' + t,
           isCurr: t===currTag
         }
       });
-
-      getGitObject(repo, refString, "commit", null, function(err, commit) {
+    
+      moRepo.commit(id, function(err, moCommit) {
         if (err) {
-          if (err.errno == process.ENOENT) {
-            mustache404Response(res, req.url);
-          } else {
-            mustache500Response(res,
-              "Error getting git commit: repo='"+repo.name+"' ref='"+refString+"'",
-              JSON.stringify(err, null, 2));
-          }
-          return;
+          return mustache500Response(res,
+            "Error getting git commit: repo='"+moRepo.name+"' id='"+id+"'",
+            JSON.stringify(err, null, 2));
         }
-        viewAddCommit(view, commit.commit, repo.name);
-        view.title = "Commit " + commit.commit.id + " (" + repo.name + ") \u2014 " + config.name,
+        if (!moCommit) {
+          return mustache404Response(res, req.url);
+        }
 
-        gitExec(["show", commit.commit.id], repo.dir, function(err, stdout, stderr) {
+        viewAddCommit(view, moCommit, moRepo.name);
+        view.title = "Commit " + moCommit.id + " (" + moRepo.name + ") \u2014 " + config.name;
+        //TODO: change this gitExec to `moRepo.diff()` (new).
+        gitExec(["show", moCommit.id], moRepo.dir, function(err, stdout, stderr) {
           if (err) {
             //TODO: include 'data' in error. return here? error response?
-            warn("error: Error fetching repository '"+repo.name+"' ("
-                 + repo.url+") diff '"+commit.commit.id+"': "+err);
+            warn("error: Error fetching repository '"+moRepo.name+"' ("
+                 + moRepo.url+") diff '"+moCommit.id+"': "+err);
           }
           var diffStart = stdout.match(/^diff/m);
           var text = (diffStart ? stdout.slice(diffStart.index) : "");
@@ -710,31 +613,16 @@ function createApp(opts, config) {
 
   // GET /commit/:id
   app.get('/commit/:id', function(req, res) {
-    // Get commit and repo info from '/api/commit/:id'.
     var id = req.params.id;
-    var opts = {
-      host: config.host || "127.0.0.1",
-      port: config.port,
-      path: '/api/commit/' + id
-    };
-    var subreq = http.get(opts, function(subres) {
-      if (subres.statusCode === 200) {
-        subres.setEncoding("utf-8");
-        var chunks = [];
-        subres.on("data", function(chunk) {
-          chunks.push(chunk);
-        });
-        subres.on("end", function(data) {
-          var commit = JSON.parse(chunks.join(''));
-          var redir = "/" + commit.repository.name
-            + "/commit/" + commit.commit.id;
-          res.redirect(redir);
-        });
+    db.lookupCommit(id, function(err, moRepo, moCommit) {
+      if (err) {
+        mustache500Response(res, "error finding commit id '"+id+"'", err);
+      } else if (moCommit) {
+        var redir = "/" + moRepo.name + "/commit/" + moCommit.id;
+        res.redirect(redir);
       } else {
         mustache404Response(res, req.url);
       }
-    }).on("error", function(suberr) {
-      mustache500Response(res, "error finding commit id '"+id+"'", suberr);
     });
   });
 
@@ -764,8 +652,8 @@ db = (function() {
     this.isCloned = Path.existsSync(this.dir);
     this.isFetchPending = false;
     this.numActiveFetches = 0;
-    this._apiCache = null;
     this._cache = {};
+    this._gitRepoCache = null;
   }
 
   /**
@@ -782,39 +670,158 @@ db = (function() {
   }
 
   /**
-   * Get the refs for this repo. Calls the callback with:
-   *    error, refs, branches, tags
+   * Get a (possibly cached) node-git "Repo" instance. Calls:
+   *    callback(err, gitRepo)
    */
-  Repository.prototype.refs = function refs(callback) {
-    if (this._cache.refsInfo) {
-      callback.apply(null, this._cache.refsInfo);
+  Repository.prototype._getGitRepo = function _getGitRepo(callback) {
+    if (this._gitRepoCache) {
+      callback(null, this._gitRepoCache);
     } else {
-      var this_ = this;
-      this.api.listReferences(gitteh.GIT_REF_LISTALL, function(err, refs) {
-        if (err) { callback(err) }
-        refs.sort();
-        refs.reverse();  // latest version number (lexographically) at the top
-
-        var TAGS_PREFIX = "refs/tags/";
-        var tags = refs.filter(function(s) { return s.slice(0, TAGS_PREFIX.length) === TAGS_PREFIX });
-        tags = tags.map(function(s) { return s.slice(TAGS_PREFIX.length) });
-
-        var HEADS_PREFIX = "refs/heads/";
-        var branches = refs.filter(function(s) { return s.slice(0, HEADS_PREFIX.length) === HEADS_PREFIX });
-        var branches = branches.map(function(s) { return s.slice(HEADS_PREFIX.length) });
-
-        var refsInfo = this_._cache.refsInfo = [null, refs, branches, tags];
-        callback.apply(null, refsInfo);
+      new git.Repo(this.dir, {is_bare: true}, function(err, gitRepo) {
+        if (err) { return callback(err) }
+        this._gitRepoCache = gitRepo;
+        callback(null, gitRepo);
       });
     }
   }
 
-  Repository.prototype.__defineGetter__("api", function() {
-    if (this._apiCache === null) {
-      this._apiCache = gitteh.openRepository(this.dir);
+  /**
+   * Get the refs for this repo. Calls:
+   *    callback(err, refs)
+   */
+  Repository.prototype.refs = function refs(callback) {
+    if (this._cache.refs) {
+      callback(null, this._cache.refs);
+    } else {
+      var this_ = this;
+      this._getGitRepo(function(err, gitRepo) {
+        if (err) { return callback(err); }
+        var refs = {};
+        gitRepo.tags(function(err, gitTags) {
+          if (err) { return callback(err); }
+          refs.tags = gitTags.map(function (t) { return t.name });
+          gitRepo.heads(function(err, gitHeads) {
+            if (err) { return callback(err); }
+            refs.branches = gitHeads.map(function (h) { return h.name });
+            this_._cache.refs = refs;
+            callback(null, refs);
+          });
+        });
+      });
     }
-    return this._apiCache;
-  });
+  }
+
+  /**
+   * Get the given commit. Calls:
+   *    callback(err, commit)
+   */
+  Repository.prototype.commit = function commit(id, callback) {
+    var this_ = this;
+    this._getGitRepo(function(err, gitRepo) {
+      if (err) { return callback(err); }
+      gitRepo.commit(id, function(err2, gitCommit) {
+        if (err2) {
+          try { callback(err2); } catch (e) { log(e.stack || e) }
+          return;
+        }
+        if (!gitCommit) {
+          try { callback(null, null); } catch (e) { log(e.stack || e) }
+          return;
+        }
+        var commit = {
+          id: gitCommit.id,
+          message: gitCommit.message,
+          author: {
+            name: gitCommit.author.name,
+            email: gitCommit.author.email,
+            time: gitCommit.authored_date
+          },
+          parents: gitCommit.parents.map(function (p) { return p.id }),
+          tree: gitCommit.tree.id
+        };
+        if (gitCommit.commiter) {
+          commit.commiter = {
+            name: gitCommit.commiter.name,
+            email: gitCommit.commiter.email,
+            time: gitCommit.commited_date
+          };
+        }
+        try { callback(null, commit); } catch(e) { log(e.stack || e) }
+      });
+    });
+  }
+
+  /**
+   * Get the blob or tree for the given ref and path. Calls:
+   *    callback(err, blobOrTree)
+   */
+  Repository.prototype.blobOrTree = function blobOrTree(ref, path, callback) {
+    var this_ = this;
+    this_.commit(ref, function(err, commit) {
+      if (err) { return callback(err); }
+      if (!commit) { return callback({error: "no such commit: "+ref}) }
+        
+      var gitRepo = this._gitRepoCache;
+      var pathParts = (path ? path.split('/') : []);
+      
+      function resolvePathPart(treeId) {
+        //log("-- resolvePathPart:", treeId, pathParts)
+        gitRepo.tree(treeId, function(err, gitTree) {
+          if (err) {
+            return callback({
+              error: "error getting tree '"+treeId+'"',
+              details: err
+            });
+          }
+          if (pathParts.length == 0) {
+            return callback(null, {
+              commit: commit,
+              tree: {
+                id: gitTree.id,
+                entries: gitTree.contents.map(function (e) {
+                  return {
+                    id: e.id,
+                    name: e.name,
+                    mode: e.mode
+                  }
+                })
+              }
+            })
+          } else {
+            var thisPart = pathParts.shift();
+            var isLastPart = pathParts.length === 0;
+            var entry = gitTree.contents
+              .filter(function(e) { return e.name == thisPart })[0];
+            if (!entry) {
+              return callback({error: "'"+path+"' not found", httpCode: 404});
+            } else if (isLastPart && !S_ISDIR(entry.mode)) {
+              // Note: This is stupidly sync in node-git.
+              gitRepo.blob(entry.id, function(err, gitBlob) {
+                if (err) {
+                  return callback({
+                    error: "error getting blob id '"+entry.id+"'",
+                    details: err
+                  });
+                }
+                callback(null, {
+                  commit: commit,
+                  blob: {
+                    id: gitBlob.id,
+                    mode: gitBlob.mode,
+                    data: gitBlob.data
+                  }
+                })
+              });
+            } else {
+              resolvePathPart(entry.id);
+            }
+          }
+        });
+      }
+      resolvePathPart(commit.tree);
+    });
+  }
+
 
   Repository.prototype.clone = function clone() {
     var this_ = this;
@@ -927,163 +934,48 @@ db = (function() {
         }
         callback(null);
       });
-    }
+    },
+
+    /**
+     * Look for the given commit id in all repos.
+     *        callback(err, repo, commit)
+     * If `err` is set, there was an internal error. Else if `commit`
+     * is null, then the commit was not found. Else `commit` will be
+     * set.
+     */
+    lookupCommit: function lookupCommit(id, callback) {
+      var theRepo = null;
+      var theCommit = null;
+  
+      //TODO: lookup in cache
+  
+      function _lookupCommitInRepo(moRepo, cb) {
+        moRepo.commit(id, function(err, moCommit) {
+          if (err) { return cb(err) }
+          if (moCommit) {
+            theRepo = moRepo;
+            theCommit = moCommit;
+          }
+          cb(null);
+        });
+      }
+
+      //asyncForEach(_.values(this.repoFromName), _lookupCommitInRepo, function (err) {
+      asyncForEach([this.repoFromName["eol"]], _lookupCommitInRepo, function (err) {
+        if (err) {
+          callback(err);
+        } else {
+          callback(null, theRepo, theCommit);
+        }
+      });
+    },
+
   };
 })();
 
 
 
 //---- internal support functions
-
-/* Get the referenced repository blob or tree and call `callback`:
- *
- *    callback(err, object);
- *
- * If `err` is given it will be of the form:
- *
- *    {
- *      "error": error message string
- *      "details": optional object with some error details
- *    }
- *
- * ...
- * @param type {String} What type of git object to return. Can be one of
- *    "commit" or "entry". Here "entry" means either a tree or a blob
- *    is returned depending on what the given `path` param refers to.
- * @param path {String} The path in a git tree to return. Only used
- *    if `type === "entry"`.
- * ...
- *
- */
-function getGitObject(repo, commitishOrRefString, type, path, callback) {
-  assert.ok(type === "commit" || type === "entry");
-  var theCommit;
-
-  function getGitEntry(repo, treeId, pathParts, path) {
-    repo.api.getTree(treeId, function(err, tree) {
-      if (err) {
-        callback({
-          error: "error getting commit tree '"+treeId+"'",
-          details: err
-        });
-        return;
-      }
-      if (pathParts.length == 0) {
-          callback(null, {
-            tree: tree,
-            commit: theCommit
-          });
-      } else {
-        var thisPart = pathParts.shift();
-        var isLastPart = pathParts.length === 0;
-        var entry = tree.entries
-          .filter(function(e) { return e.name == thisPart })[0];
-        if (!entry) {
-          callback({error: "'"+path+"' not found"});
-          return;
-        } else if (isLastPart && !S_ISDIR(entry.attributes)) {
-          repo.api.getBlob(entry.id, function(err, blob) {
-            if (err) {
-              callback({
-                error: "error getting blob id '"+entry.id+"'",
-                details: err
-              });
-              return;
-            }
-            callback(null, {
-              blob: blob,
-              commit: theCommit
-            });
-          });
-        } else {
-          //TODO: assert entry.attributes shows this is a dir
-          getGitEntry(repo, entry.id, pathParts, path);
-        }
-      }
-    });
-  }
-
-  function onCommitRef(commitRef) {
-    repo.api.getCommit(commitRef.target, function(err, commit) {
-      if (err) {
-        callback({
-          error: "error getting commit '"+commitRef.target+"'",
-          details: err
-        });
-        return;
-      }
-      if (type === "commit") {
-        callback(null, {commit: commit});
-      } else {
-        var pathParts = (path ? path.split('/') : []);
-        theCommit = commit;
-        getGitEntry(repo, commit.tree, pathParts, path);
-      }
-    });
-  }
-
-  function onTagRef(tagRef) {
-    repo.api.getTag(tagRef.target, function(err, tag) {
-      if (err) {
-        callback({
-          error: "error getting tag '"+tagRef.target+"'",
-          details: err
-        });
-        return;
-      }
-      //warn(sys.inspect(tag))
-      if (tag.targetType === 'commit') {
-        onCommitRef({target: tag.targetId})
-      } else {
-        callback({
-          error: "unknown tag targetType, '" + tag.targetType +
-            "', for tag ref '" + tagRef.target + "'"
-        });
-        return;
-      }
-    });
-  }
-
-  function onRef(err, ref) {
-    if (err) {
-      callback({
-        error: "error looking up reference for '"+commitishOrRefString+"'",
-        details: err
-      });
-      return;
-    }
-    if (ref.type === gitteh.GIT_REF_OID) {
-      if (ref.name.slice(0, "refs/tags/".length) === "refs/tags/") {
-        onTagRef(ref);
-      } else {
-        onCommitRef(ref);
-      }
-    } else if (ref.type === gitteh.GIT_REF_SYMBOLIC) {
-      ref.resolve(onRef);
-    } else {
-      callback({error: "Unknown reference type for '"+commitishOrRefString+"': "+ref.type});
-    }
-  }
-
-  var sha1Re = /[0-9a-f]{40}/;
-  if (commitishOrRefString.indexOf('/') !== -1) {
-    // Looks like a ref string, e.g. "refs/heads/master".
-    repo.api.getReference(commitishOrRefString, onRef);
-  } else if (sha1Re.test(commitishOrRefString)) {
-    // Full sha1.
-    onCommitRef({target: commitishOrRefString});
-  } else {
-    // Resolve with 'git rev-parse'.
-    gitExec(['rev-parse', commitishOrRefString], repo.dir, function(err, stdout, stderr) {
-      if (err) {
-        callback({error: "Could not resolve '"+commitishOrRefString+"': "+err});
-        return;
-      }
-      onCommitRef({target: stdout.trim()});
-    });
-  }
-}
-
 
 /**
  * Add a "text" field to the given mustache template view object
@@ -1137,8 +1029,7 @@ function viewAddForTextbox(view, fieldName, text, filename, callback) {
  * used by the "commitbox.mustache" partial.
  *
  * @param view {Object} A mustache template view object.
- * @param commit {gitteh.Commit?} The object returned from
- *    `getGitObject(..., "commit", ...).commit`.
+ * @param commit {moCommit} The object returned from `moRepo.commit()`.
  * @param repoName {String}
  * @param brief {Boolean} Add the necessary data and flags for the
  *    commit.mustache to render a "brief" commit box.
@@ -1254,6 +1145,10 @@ function S_IFMT(mode) {
 }
 S_IFDIR  = 0040000
 function S_ISDIR(mode) {
+  if (typeof mode === 'string') {
+    // If a string is given, presume an octal string.
+    mode = parseInt(mode, 8);
+  }
   return S_IFMT(mode) == S_IFDIR
 }
 
@@ -1482,7 +1377,7 @@ function asyncForEach (list, fn, cb) {
   var c = list.length
     , errState = null
   list.forEach(function (item, i, list) {
-    fn(item, function (er) {
+   fn(item, function (er) {
       if (errState) return
       if (er) return cb(errState = er)
       if (-- c === 0) return cb()

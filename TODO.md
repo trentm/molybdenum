@@ -1,9 +1,3 @@
-# high prio
-
-- switch away from gitteh (https://github.com/libgit2/node-gitteh/issues/16#issuecomment-1612254)
-  see 'git' play in tmp/play
-  and https://github.com/christkv/node-git/tree/master/test for examples
-
 # medium prio
 
 - redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1

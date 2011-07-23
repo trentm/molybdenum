@@ -93,9 +93,6 @@ var testData = {
       test.equal(response.statusCode, 200);
       //log(body)
       var data = JSON.parse(body);
-      test.ok(data.refs);
-      test.ok(data.refs.indexOf("refs/heads/master") != -1);
-      test.ok(data.refs.indexOf("refs/tags/0.7.5") != -1);
       test.ok(data.branches.indexOf("master") != -1);
       test.ok(data.tags.indexOf("0.7.2") != -1);
       test.done();
@@ -117,7 +114,7 @@ var testData = {
       test.ok(data.tree);
       test.ok(data.tree.id);
       test.equal(data.tree.entries[0].name, ".gitignore");
-      test.equal(data.ref, "refs/heads/master");
+      test.equal(data.ref, "master");
       test.equal(data.path, "");
       test.done();
     });
@@ -136,7 +133,7 @@ var testData = {
       test.ok(data.tree);
       test.ok(data.tree.id);
       test.equal(data.tree.entries[0].name, ".gitignore");
-      test.equal(data.ref, "refs/tags/0.7.2");
+      test.equal(data.ref, "0.7.2");
       test.equal(data.path, "");
       test.done();
     });
@@ -158,7 +155,7 @@ var testData = {
       test.ok(data.commit.tree);
       test.ok(data.commit.parents);
       test.equal(data.commit.id, id);
-      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.message, "changelog update");
       test.equal(data.commit.author.name, "Trent Mick");
       test.done();
     });
@@ -178,7 +175,7 @@ var testData = {
       test.ok(data.commit.tree);
       test.ok(data.commit.parents);
       test.equal(data.commit.id, id);
-      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.message, "changelog update");
       test.equal(data.commit.author.name, "Trent Mick");
       test.done();
     });
@@ -234,12 +231,17 @@ var testData = {
       test.ok(data.commit.tree);
       test.ok(data.commit.parents);
       test.equal(data.commit.id, id);
-      test.equal(data.commit.message, "changelog update\n");
+      test.equal(data.commit.message, "changelog update");
       test.equal(data.commit.author.name, "Trent Mick");
       test.done();
     });
   },
   //TODO: on a project with a branch
+  
+  //"GET /api/commit/:id": function(test) {
+  //  //TODO
+  //  test.done();
+  // }
 
   //"GET /api/repos/:repo/refs/:ref/:path": function(test) {
   //  //TODO
@@ -248,6 +250,19 @@ var testData = {
 
   //TODO: all the other non-api endpoints
 
+  "GET /": function(test) {
+    request({
+          uri:'http://localhost:3334/',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      //log(body)
+      test.ok(body.indexOf('href="/eol"') != -1)
+      test.done();
+    });
+  },
   "GET /:repo/tree/:ref  # tag": function(test) {
     request({
           uri:'http://localhost:3334/eol/tree/0.7.2',
@@ -338,6 +353,59 @@ var testData = {
       test.done();
     });
   },
+
+  "GET /:repo/commit/:id": function(test) {
+    request({
+          uri:'http://localhost:3334/eol/commit/86fb0c2c2c37e71c',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
+      test.equal(response.statusCode, 200);
+      test.ok(body.indexOf("--- a/MANIFEST.in") != -1)
+      test.done();
+    });
+  },
+  "GET /:repo/commit/:id  # 404": function(test) {
+    request({
+          uri:'http://localhost:3334/eol/commit/badbad',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
+      test.equal(response.statusCode, 404);
+      test.ok(body.indexOf("404") != -1)
+      test.done();
+    });
+  },
+
+
+  "GET /commit/:id": function(test) {
+    request({
+          uri:'http://localhost:3334/commit/86fb0c2c2c37e71c',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
+      //log(body);
+      test.equal(response.statusCode, 200);
+      test.ok(body.indexOf("--- a/MANIFEST.in") != -1)
+      test.done();
+    });
+  },
+  "GET /commit/:id  # 404": function(test) {
+    request({
+          uri:'http://localhost:3334/commit/badbad',
+          headers: {
+            "Authorization": "Basic "+base64.encode('kermit:thefrog')
+          }
+        }, function (error, response, body) {
+      //log(body);
+      test.equal(response.statusCode, 404);
+      test.done();
+    });
+  },
+
 
   "": {}  // F'ing trailing comma.
 };
