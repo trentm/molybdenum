@@ -2,8 +2,8 @@
   "endpoints": [
     "GET    /api", 
     "GET    /api/repos", 
+    "POST   /api/repos", 
     "GET    /api/repos/:repo", 
-    "POST   /api/repos/:repo", 
     "GET    /api/repos/:repo", 
     "DELETE /api/repos/:repo", 
     "GET    /api/repos/:repo/refs", 

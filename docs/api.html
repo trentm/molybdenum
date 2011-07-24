@@ -20,8 +20,8 @@
   <li><a href="#repository-api">Repository API</a>
   <ul>
     <li><a href="#GET-/api/repos"><span class="verb">GET</span> <span>/api/repos</span></a></li>
+    <li><a href="#POST-/api/repos"><span class="verb">POST</span> <span>/api/repos</span></a></li>
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
-    <li><a href="#POST-/api/repos/:repo"><span class="verb">POST</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#DELETE-/api/repos/:repo"><span class="verb">DELETE</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#GET-/api/repos/:repo/refs"><span class="verb">GET</span> <span>/api/repos/:repo/refs</span></a></li>
@@ -181,6 +181,62 @@ on the request "Accept" header.</p>
 }
 </code></pre>
 
+<h2 id="POST-/api/repos"><span>POST /api/repos</span></h2>
+
+<p>Let the server know about a new push to a repo. The request body must be a JSON
+object of the following form (compatible with the Github URL post-receive
+hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://help.github.com/post-receive-hooks/</a>):</p>
+
+<pre><code>{
+  "repository": {
+    "url": $git_clone_url,
+    "name": $name
+  },
+  // These are optional:
+  "before": $before_sha,
+  "after": $after_sha,
+  "ref": $ref
+}
+</code></pre>
+
+<p>At a minimum, only the "repository" key is required.</p>
+
+<h4>example request</h4>
+
+<pre class="shell"><code>echo '{
+    "repository": {
+        "url": "git@code.example.com:cool-product.git",
+        "name": "cool-product"
+    },
+    "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
+    "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
+    "ref": "refs/heads/master"
+}' | curl {{ url }}/api/repos -X POST -d @-
+</code></pre>
+
+<p>TODO: add example post-receive hook script and post-receive webhook URL.</p>
+
+<h4>successful response</h4>
+
+<pre><code>...
+Status: 200
+
+{
+  "success": true
+}
+</code></pre>
+
+<h4>error response</h4>
+
+<pre><code>...
+Status: 400
+
+{
+  "success": true,
+  "error": "some description of the error"
+}
+</code></pre>
+
 <h2 id="GET-/api/repos/:repo"><span>GET /api/repos/:repo</span></h2>
 
 <p>Return info on all current repositories in the molybdenum server.</p>
@@ -212,63 +268,6 @@ Status: 404
     "message": "no such repo: 'asdf'",
     "code": 404
   }
-}
-</code></pre>
-
-<h2 id="POST-/api/repos/:repo"><span>POST /api/repos/:repo</span></h2>
-
-<p>Let the server know about a new push to a repo. The request body must be a JSON
-object of the following form (compatible with the Github URL post-receive
-hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://help.github.com/post-receive-hooks/</a>):</p>
-
-<pre><code>{
-  "repository": {
-    "url": $git_clone_url,
-    "name": $name
-  },
-  // These are optional:
-  "before": $before_sha,
-  "after": $after_sha,
-  "ref": $ref
-}
-</code></pre>
-
-<p>At a minimum, only the "repository" key is required.</p>
-
-<h4>example request</h4>
-
-<pre class="shell"><code>echo '{
-    "repository": {
-        "url": "git@code.example.com:cool-product.git",
-        "name": "cool-product"
-    },
-    "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
-    "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
-    "ref": "refs/heads/master"
-}' | curl {{ url }}/api/push -X PUT -d @-
-</code></pre>
-
-<p>Note: This is pretty close to what you can use for a post-receive in your git
-repo's ".git/hooks" dir.</p>
-
-<h4>successful response</h4>
-
-<pre><code>...
-Status: 200
-
-{
-  "success": true
-}
-</code></pre>
-
-<h4>error response</h4>
-
-<pre><code>...
-Status: 400
-
-{
-  "success": true,
-  "error": "some description of the error"
 }
 </code></pre>
 

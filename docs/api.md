@@ -148,39 +148,7 @@ List all repositories currently in the molybdenum server. (TODO: add paging)
     }
 
 
-## GET /api/repos/:repo
-
-Return info on all current repositories in the molybdenum server.
-
-#### example request
-
-    $ curl {{ url }}/api/repos/eol
-
-#### example response
-
-    {
-      "repository": {
-        "name": "eol",
-        "url": "https://github.com/trentm/eol.git",
-        "dir": "/data/molybdenum/repos/eol.git",
-        ...
-      }
-    }
-
-#### failure response
-
-    ...
-    Status: 404
-
-    {
-      "error": {
-        "message": "no such repo: 'asdf'",
-        "code": 404
-      }
-    }
-
-
-##  POST /api/repos/:repo
+## POST /api/repos
 
 Let the server know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -210,10 +178,9 @@ At a minimum, only the "repository" key is required.
         "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
         "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
         "ref": "refs/heads/master"
-    }' | curl {{ url }}/api/push -X PUT -d @-
+    }' | curl {{ url }}/api/repos -X POST -d @-
 
-Note: This is pretty close to what you can use for a post-receive in your git
-repo's ".git/hooks" dir.
+TODO: add example post-receive hook script and post-receive webhook URL.
 
 #### successful response
 
@@ -232,6 +199,37 @@ repo's ".git/hooks" dir.
     {
       "success": true,
       "error": "some description of the error"
+    }
+
+## GET /api/repos/:repo
+
+Return info on all current repositories in the molybdenum server.
+
+#### example request
+
+    $ curl {{ url }}/api/repos/eol
+
+#### example response
+
+    {
+      "repository": {
+        "name": "eol",
+        "url": "https://github.com/trentm/eol.git",
+        "dir": "/data/molybdenum/repos/eol.git",
+        ...
+      }
+    }
+
+#### failure response
+
+    ...
+    Status: 404
+
+    {
+      "error": {
+        "message": "no such repo: 'asdf'",
+        "code": 404
+      }
     }
 
 

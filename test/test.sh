@@ -65,7 +65,7 @@ done
 echo "== load fixtures"
 (cd tmp && tar xf ${ROOT}/test/fixtures/eol.git.tgz)
 echo '{"repository": {"url": "tmp/eol.git", "name": "eol"}}' \
-    | curl -sS http://localhost:3334/api/repos/eol -X PUT -u kermit:thefrog -d @-
+    | curl -sS http://localhost:3334/api/repos -X POST -u kermit:thefrog -d @-
 sleep 2  # let it clone eol
 
 echo "== run the test suite"
