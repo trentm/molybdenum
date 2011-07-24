@@ -19,7 +19,7 @@ var child_process = require('child_process');
 var assert = require('assert');
 var http = require('http');
 
-var git = require('git');
+var git = require('trentm-git');
 var chaingang = require(__dirname + '/node_modules/chain-gang/lib/index.js');
 var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
