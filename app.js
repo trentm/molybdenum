@@ -1091,12 +1091,20 @@ function cloneRepoTask(repo) {
     var tmpDir = Path.join(config.tmpDir, repo.name+"."+process.pid)
     gitExec(["clone", "--bare", repo.url, tmpDir], null, function(err, stdout, stderr) {
       if (err) {
-        //TODO: include 'data' in error.
-        warn("error: Error cloning repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err);
+        warn("error: Error cloning repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err+"\n--\n"+stdtout+"\n--\n"+stderr);
         if (Path.existsSync(tmpDir)) {
           fs.rmdirSync(tmpDir)
         }
-      } else {
+        worker.finish();
+        return;
+      }
+      gitExec(["remote", "add", "origin", repo.url], tmpDir, function(err2, stdout2, stderr2) {
+        if (err2) {
+          warn("error: Error setting 'origin' remote on repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err2+"\n--\n"+stdtout+"\n--\n"+stderr);
+          fs.rmdirSync(tmpDir)
+          worker.finish();
+          return;
+        }
         try {
           fs.renameSync(tmpDir, repo.dir);
           repo.isCloned = true;
@@ -1104,8 +1112,8 @@ function cloneRepoTask(repo) {
           warn("error: Error moving repository '"+repo.name+"' clone from '"+
             tmpDir+"' to '"+repo.dir+"'.");
         }
-      }
-      worker.finish();
+        worker.finish();
+      });
     });
   }
 }
