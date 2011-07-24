@@ -1,11 +1,12 @@
 # medium prio
 
+- write the post-receive
+- deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
+- https
+- authorization
+- git bot ssh key (already have?)
 - redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1
 - button to add a repo on '/'
-- write the post-receive
-- capi-based auth... need cookies then?
-- deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
-- https for head.no.de
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
 - better name. bluelight? no reason. head? shed (little place with some tools)?
