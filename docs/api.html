@@ -21,7 +21,7 @@
   <ul>
     <li><a href="#GET-/api/repos"><span class="verb">GET</span> <span>/api/repos</span></a></li>
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
-    <li><a href="#PUT-/api/repos/:repo"><span class="verb">PUT</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#POST-/api/repos/:repo"><span class="verb">POST</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#DELETE-/api/repos/:repo"><span class="verb">DELETE</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#GET-/api/repos/:repo/refs"><span class="verb">GET</span> <span>/api/repos/:repo/refs</span></a></li>
@@ -215,7 +215,7 @@ Status: 404
 }
 </code></pre>
 
-<h2 id="PUT-/api/repos/:repo"><span>PUT /api/repos/:repo</span></h2>
+<h2 id="POST-/api/repos/:repo"><span>POST /api/repos/:repo</span></h2>
 
 <p>Let the server know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -233,8 +233,7 @@ hook JSON format <a href="http://help.github.com/post-receive-hooks/">http://hel
 }
 </code></pre>
 
-<p>At a minimum, only the "repository" key is required, though the other
-fields will be used if given.</p>
+<p>At a minimum, only the "repository" key is required.</p>
 
 <h4>example request</h4>
 

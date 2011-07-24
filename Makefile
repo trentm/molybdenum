@@ -86,7 +86,7 @@ run: tmp
 redis-cli:
 	deps/redis/src/redis-cli -p 6401
 
-docs:
+doc:
 	./support/restdown -v -b support/restdown-brand -m static/static docs/api.md
 
 test:

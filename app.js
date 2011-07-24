@@ -146,7 +146,7 @@ function createApp(opts, config) {
     }
   });
 
-  app.put('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
+  app.post('/api/repos/:repo', requestBodyMiddleware, function(req, res) {
     try {
       var data = JSON.parse(req.body);
     } catch(ex) {

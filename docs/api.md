@@ -180,7 +180,7 @@ Return info on all current repositories in the molybdenum server.
     }
 
 
-## PUT /api/repos/:repo
+##  POST /api/repos/:repo
 
 Let the server know about a new push to a repo. The request body must be a JSON
 object of the following form (compatible with the Github URL post-receive
@@ -197,8 +197,7 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
       "ref": $ref
     }
 
-At a minimum, only the "repository" key is required, though the other
-fields will be used if given.
+At a minimum, only the "repository" key is required.
 
 
 #### example request

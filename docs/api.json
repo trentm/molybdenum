@@ -3,7 +3,7 @@
     "GET    /api", 
     "GET    /api/repos", 
     "GET    /api/repos/:repo", 
-    "PUT    /api/repos/:repo", 
+    "POST   /api/repos/:repo", 
     "GET    /api/repos/:repo", 
     "DELETE /api/repos/:repo", 
     "GET    /api/repos/:repo/refs", 
