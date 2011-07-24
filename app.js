@@ -1089,18 +1089,27 @@ function cloneRepoTask(repo) {
   return function(worker) {
     //TODO: Better tmpDir naming for uniqueness.
     var tmpDir = Path.join(config.tmpDir, repo.name+"."+process.pid)
-    gitExec(["clone", "--bare", repo.url, tmpDir], null, function(err, stdout, stderr) {
+    var args = ["clone", "--bare", repo.url, tmpDir];
+    gitExec(args, null, function(err, stdout, stderr) {
       if (err) {
-        warn("error: Error cloning repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err+"\n--\n"+stdtout+"\n--\n"+stderr);
+        warn("error: Error cloning repository '"+repo.name+"' ("
+          +repo.url+") to '"+tmpDir+"': "+err
+          +"\n-- args: "+args+"\n-- stdout:\n"+stdout+"\n-- stderr:\n"+stderr+"\n--");
         if (Path.existsSync(tmpDir)) {
           fs.rmdirSync(tmpDir)
         }
         worker.finish();
         return;
       }
-      gitExec(["remote", "add", "origin", repo.url], tmpDir, function(err2, stdout2, stderr2) {
+      // Don't use 'git remote add origin ...' because that fails on the
+      // the git setups that *do* automatically create the 'origin' remote
+      // on clone.
+      args = ["config", "remote.origin.url", repo.url];
+      gitExec(args, tmpDir, function(err2, stdout2, stderr2) {
         if (err2) {
-          warn("error: Error setting 'origin' remote on repository '"+repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err2+"\n--\n"+stdtout+"\n--\n"+stderr);
+          warn("error: Error setting 'origin' remote on repository '"
+            +repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err2
+          +"\n-- args: "+args+"\n-- stdout:\n"+stdout2+"\n-- stderr:\n"+stderr2+"\n--");
           fs.rmdirSync(tmpDir)
           worker.finish();
           return;
@@ -1490,7 +1499,7 @@ function createDataArea(config) {
   }
   config.tmpDir = Path.join(config.dataDir, "tmp");
   if (Path.existsSync(config.tmpDir)) {
-    fs.rmdirSync(config.tmpDir);
+    rimraf.sync(config.tmpDir);
   }
   fs.mkdirSync(config.tmpDir, 0755);
 }
