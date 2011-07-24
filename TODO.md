@@ -1,7 +1,10 @@
 # medium prio
 
 - write the post-receive
-- deploy to head.no.de. Just json, eol, python-markdown2, restdown and a test repo.
+    MOLYBDENUM_CREDENTIALS=user:pass
+    MOLYBDENUM_URL=http://gq2ukvaa.joyent.us:3333
+    echo "Ping Molybdenum at ${MOLYBDENUM_URL} about push."
+    curl --connect-timeout 2 -Ss -k -u ${MOLYBDENUM_CREDENTIALS} ${MOLYBDENUM_URL}/api/docset/mapi -X PUT >/dev/null || echo "Error telling Molybdenum. Continuing."
 - https
 - authorization
 - git bot ssh key (already have?)
