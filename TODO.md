@@ -1,3 +1,17 @@
+# feature requests
+
+- markdown rendering of .markdown|.md|.restdown et al files
+- link a jira ticket name in commit message to the jira URL (i.e. autolinks)
+- search by jira ticket name
+- list of ocmmits (history)
+- blame
+
+# bugs
+
+- josh: https://gq2ukvaa.joyent.us/cloud-api/blob/master/tools/watch-amqp.js
+  and selected Branch: release-20110512
+  returns a 404, should perhaps be a "file does not exist" (still a 404?)
+
 # medium prio
 
 - git bot ssh key (already have?)
