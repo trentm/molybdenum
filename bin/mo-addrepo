@@ -16,4 +16,5 @@ else
 fi
 
 echo "{\"repository\": {\"url\": \"$REPO\", \"name\": \"$NAME\"}}" \
-    | curl ${CURL_USER_OPT} ${MOLYBDENUM_URL}/api/repos -X POST -d @-
+    | curl ${CURL_USER_OPT} ${MOLYBDENUM_URL}/api/repos -X POST \
+    -H "Content-Type: application/json" -d @-

@@ -1,13 +1,19 @@
 # medium prio
 
-- write the post-receive
-    MOLYBDENUM_CREDENTIALS=user:pass
-    MOLYBDENUM_URL=http://gq2ukvaa.joyent.us:3333
-    echo "Ping Molybdenum at ${MOLYBDENUM_URL} about push."
-    curl --connect-timeout 2 -Ss -k -u ${MOLYBDENUM_CREDENTIALS} ${MOLYBDENUM_URL}/api/docset/mapi -X PUT >/dev/null || echo "Error telling Molybdenum. Continuing."
+- post-receive:
+    - get the post-receive working (it *is* posting for ghtest to sm_a)
+      but that isnt' resulting in a new fetch
+    - add these to the docs:
+            MOLYBDENUM_CREDENTIALS=user:pass
+            MOLYBDENUM_URL=https://molybdenum.example.com
+            echo "Ping Molybdenum at ${MOLYBDENUM_URL} about push."
+            curl --connect-timeout 2 -Ss -k -u ${MOLYBDENUM_CREDENTIALS} ${MOLYBDENUM_URL}/api/repos -X PUT >/dev/null || echo "Error telling Molybdenum. Continuing."
+      or a github post-receive URL might be:
+            https://user:pass@molybdenum.example.com/api/repos
 - https
 - authorization
 - git bot ssh key (already have?)
+- 'POST /api/repos' should bail if the url doesn't match existing
 - redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1
 - button to add a repo on '/'
 - "POST /api/repos/:repo": Error if repo names don't match. Error if

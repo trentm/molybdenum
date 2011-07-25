@@ -161,19 +161,28 @@ function createApp(opts, config) {
     }
   });
 
-  app.post('/api/repos', requestBodyMiddleware, function(req, res) {
-    try {
-      var data = JSON.parse(req.body);
-    } catch(ex) {
-      jsonErrorResponse(res, "invalid JSON", 400, ex);
-      return;
+  app.post('/api/repos', express.bodyParser(), function(req, res) {
+    var data, repoName, repoUrl;
+    if (req.body.payload) {
+      // Likely a GitHub post-receive hook POST.
+      try {
+        data = JSON.parse(req.body.payload);
+      } catch(ex) {
+        jsonErrorResponse(res, "invalid JSON", 400, ex);
+        return;
+      }
+      repoName = data.repository.name;
+      repoUrl = data.repository.url + ".git";
+    } else {
+      data = req.body;
+      if (!data.repository || !data.repository.url) {
+        jsonErrorResponse(res, "no repository URL given", 400);
+        return;
+      }
+      repoName = data.repository.name;
+      repoUrl = data.repository.url;
     }
 
-    if (!data.repository || !data.repository.url) {
-      jsonErrorResponse(res, "no repository URL given", 400);
-      return;
-    }
-    //warn(data);
     var repo = db.repoFromName[data.repository.name]
       || db.addRepo(data.repository.name, data.repository.url);
     repo.fetch();
