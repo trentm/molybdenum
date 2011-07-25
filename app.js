@@ -80,26 +80,27 @@ function createApp(opts, config) {
 
   function authorizeUsersMiddleware(req, res, next) {
     if (skipAuthPaths[req.url] !== undefined) {
+      //log("Skip authorization (path '%s').", req.url);
       next();
     } else if (!config.authAuthorizedUsers
                || Object.keys(config.authAuthorizedUsers).length === 0) {
       // Empty 'authAuthorizedUsers' means, allow all.
+      log("Authorize user (allow all).");
+      next();
     } else if (!req.remoteUser) {
       mustache500Response(res,
         "Unauthenticated user (`req.remoteUser` is not set).");
-      return;
     } else if (!config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.login)
         && !(req.remoteUser.uuid
              && config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.uuid))) {
-      log("Deny user '%s' (%s)", req.remoteUser.login,
+      log("Deny user '%s' (%s).", req.remoteUser.login,
         (req.remoteUser.uuid || "<no uuid>"));
       mustache403Response(res, req.remoteUser);
-      return;
     } else {
       //log("Authorize user '%s' (%s).", req.remoteUser.login,
       //  (req.remoteUser.uuid || "<no uuid>"));
+      next();
     }
-    next();
   }
 
 
@@ -329,7 +330,7 @@ function createApp(opts, config) {
   app.get('/logout', function(req, res) {
     res.statusCode = 401;
     res.setHeader('WWW-Authenticate', 'Basic realm="Authorization Required"');
-    res.end("Unauthorized")
+    res.end("Unauthorized");
   });
 
   app.get('/', function(req, res) {
@@ -1593,7 +1594,8 @@ function deletePidFile(config) {
 function loadConfig(configPath) {
   var config;
   
-  var pathVarsRelativeToConfigFile = ["authStaticFile"];
+  var pathVarsRelativeToConfigFile = ["authStaticFile", "sslKeyFile", 
+    "sslCertFile"];
   var pathVarsRelativeToCwd = ["dataDir", "pidFile"];
   
   // Resolve relative paths in vars.
