@@ -76,38 +76,53 @@ function createApp(opts, config) {
       basicAuthMiddleware(req, res, next);
     }
   }
-  
 
 
 
   //-- Configure app
-
-  var app = express.createServer(
-    // 'favicon' above 'logger' to not log favicon requests.
-    express.favicon(__dirname + '/static/favicon.ico'),
-    express.static(__dirname + '/static')
-    //express.conditionalGet()
-  );
+  
+  var app;
+  switch (config.protocol) {
+  case "http":
+    app = express.createServer();
+    break;
+  case "https":
+    app = express.createServer({
+      key: fs.readFileSync(config.sslKeyFile),
+      cert: fs.readFileSync(config.sslCertFile)
+    });
+    break;
+  default:
+    throw new Error("error: unknown 'config.protocol': '"+config.protocol+"'");
+    return;
+  }
 
   express.logger.token('user', function(req, res) {
     return (req.remoteUser ? req.remoteUser.login : '-');
   });
+  app.configure(function() {
+    // 'favicon' above 'logger' to not log favicon requests.
+    app.use(express.favicon(__dirname + '/static/favicon.ico'));
+    app.use(function (req, res, next) {
+      res.removeHeader("X-Powered-By");
+      next();
+    });
+    app.use(express.static(__dirname + '/static'));
+    app.use(express.logger({ format: '[:date] :status :method :url (:user, :response-time ms)' }));
+    //XXX:TODO turn this on
+    //express.conditionalGet()
+  });
+
   app.configure('development', function(){
-    if (! opts.quiet) {
-      app.use(express.logger({ format: '[:date] :status :method :url (:user, :response-time ms)' }));
-    }
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   });
 
   app.configure('production', function(){
-    if (! opts.quiet) {
-      app.use(express.logger({ format: '[:date] :status :method :url (:user, :response-time ms)' }));
-    }
-    app.use(express.errorHandler());
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+    //app.use(express.errorHandler());
   });
 
   app.configure(function() {
-    //app.use(basicAuthMiddleware);
     app.use(authMiddleware);
   });
 
@@ -1615,9 +1630,9 @@ function internalMainline(argv) {
   var app = createApp(opts, config);
   app.listen(config.port, config.host);
   if (! opts.quiet) {
-    console.log('Molybdenum listening on <http://' + app.address().address
-      + ':' + app.address().port + '/> (' + app.set('env')
-      + ' mode, pid file ' + (pidFile || '<none>') + ').');
+    console.log('Molybdenum listening on <%s://%s:%s/> (%s mode, pid file %s).',
+      config.protocol, app.address().address, app.address().port,
+      app.set('env'), (pidFile || '<none>'));
   }
   return 0;
 }
