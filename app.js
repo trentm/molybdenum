@@ -59,16 +59,17 @@ var defaultView;
 //---- app
 
 function createApp(opts, config) {
-  //-- Authentication and other setup
+  //-- Authentication setup
+  
+  var skipAuthPaths = {
+    "/logout": true,
+    "/api/ping": true
+  };
 
   var auth = createAuth(config);
   var basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
     auth.authenticate(username, password, cb);
   });
-  var skipAuthPaths = {
-    "/logout": true,
-    "/api/ping": true
-  };
   function authMiddleware(req, res, next) {
     if (skipAuthPaths[req.url] !== undefined) {
       next();
@@ -77,6 +78,29 @@ function createApp(opts, config) {
     }
   }
 
+  function authorizeUsersMiddleware(req, res, next) {
+    if (skipAuthPaths[req.url] !== undefined) {
+      next();
+    } else if (!config.authAuthorizedUsers
+               || Object.keys(config.authAuthorizedUsers).length === 0) {
+      // Empty 'authAuthorizedUsers' means, allow all.
+    } else if (!req.remoteUser) {
+      mustache500Response(res,
+        "Unauthenticated user (`req.remoteUser` is not set).");
+      return;
+    } else if (!config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.login)
+        && !(req.remoteUser.uuid
+             && config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.uuid))) {
+      log("Deny user '%s' (%s)", req.remoteUser.login,
+        (req.remoteUser.uuid || "<no uuid>"));
+      mustache403Response(res, req.remoteUser);
+      return;
+    } else {
+      //log("Authorize user '%s' (%s).", req.remoteUser.login,
+      //  (req.remoteUser.uuid || "<no uuid>"));
+    }
+    next();
+  }
 
 
   //-- Configure app
@@ -124,6 +148,7 @@ function createApp(opts, config) {
 
   app.configure(function() {
     app.use(authMiddleware);
+    app.use(authorizeUsersMiddleware);
   });
 
 
@@ -1317,6 +1342,20 @@ function mustache404Response(res, path) {
   mustacheResponse(res, "404.mustache", {path: path}, 404);
 }
 
+_mustache403ResponseImageIdx = 0;
+function mustache403Response(res, user) {
+  var images = [
+    '/static/img/hb1.jpg',
+    '/static/img/hb2.jpg'
+  ];
+  mustacheResponse(res, "403.mustache", {
+      user: user,
+      adminName: config.authAdminName,
+      image: images[_mustache403ResponseImageIdx]
+    }, 403, true);
+  _mustache403ResponseImageIdx = (_mustache403ResponseImageIdx + 1) % images.length;
+}
+
 /**
  * Render the given template path and responding with that.
  *
@@ -1592,6 +1631,17 @@ function loadConfig(configPath) {
     }
     resolveRelativePathVars(config, Path.dirname(configPath));
   }
+  
+  // Resolve `authJoyeurs` var.
+  var authorizedUsers = {};
+  (config.authAuthorizedUsers || "").trim().split(/\s*,\s*/).forEach(function (j) {
+    j = j.trim();
+    if (j.length > 0) {
+      authorizedUsers[j] = true;
+    }
+  });
+  config.authAuthorizedUsers = authorizedUsers;
+  //log(config)
   
   return config;
 }
