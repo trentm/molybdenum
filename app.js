@@ -83,16 +83,34 @@ function createApp(opts, config) {
       //log("Skip authorization (path '%s').", req.url);
       next();
     } else if (!config.authAuthorizedUsers
-               || Object.keys(config.authAuthorizedUsers).length === 0) {
+        || Object.keys(config.authAuthorizedUsers).length === 0) {
       // Empty 'authAuthorizedUsers' means, allow all.
       log("Authorize user (allow all).");
       next();
     } else if (!req.remoteUser) {
       mustache500Response(res,
         "Unauthenticated user (`req.remoteUser` is not set).");
-    } else if (!config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.login)
-        && !(req.remoteUser.uuid
-             && config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.uuid))) {
+    } else if (config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.login)
+        || (req.remoteUser.uuid
+            && config.authAuthorizedUsers.hasOwnProperty(req.remoteUser.uuid))) {
+      //log("Authorize user '%s' (%s).", req.remoteUser.login,
+      //  (req.remoteUser.uuid || "<no uuid>"));
+      next();
+    } else if (req.url === "/api/repos" && req.method == "POST"
+        && (config.authAuthorizedPostReceiveUsers.hasOwnProperty(req.remoteUser.login)
+            || (req.remoteUser.uuid
+                && config.authAuthorizedPostReceiveUsers.hasOwnProperty(req.remoteUser.uuid)))) {
+      //log("Authorize user '%s' (%s) for post-receive.", req.remoteUser.login,
+      //  (req.remoteUser.uuid || "<no uuid>"));
+      next();
+    } else {
+      log("Deny user '%s' (%s).", req.remoteUser.login,
+        (req.remoteUser.uuid || "<no uuid>"));
+      mustache403Response(res, req.remoteUser);
+    }
+    /*
+    else if (req.url === "/api/repos") {
+      log("XXX hello", req.method);
       log("Deny user '%s' (%s).", req.remoteUser.login,
         (req.remoteUser.uuid || "<no uuid>"));
       mustache403Response(res, req.remoteUser);
@@ -101,6 +119,7 @@ function createApp(opts, config) {
       //  (req.remoteUser.uuid || "<no uuid>"));
       next();
     }
+  */
   }
 
 
@@ -189,6 +208,9 @@ function createApp(opts, config) {
 
   app.post('/api/repos', express.bodyParser(), function(req, res) {
     var data, repoName, repoUrl;
+    if (!req.body) {
+      return jsonErrorResponse(res, "missing POST body", 400);
+    }
     if (req.body.payload) {
       // Likely a GitHub post-receive hook POST.
       try {
@@ -1635,15 +1657,18 @@ function loadConfig(configPath) {
   }
   
   // Resolve `authJoyeurs` var.
-  var authorizedUsers = {};
-  (config.authAuthorizedUsers || "").trim().split(/\s*,\s*/).forEach(function (j) {
-    j = j.trim();
-    if (j.length > 0) {
-      authorizedUsers[j] = true;
-    }
+  var csvVars = ["authAuthorizedUsers", "authAuthorizedPostReceiveUsers"];
+  csvVars.forEach(function (name) {
+    mapping = {};
+    (config[name] || "").trim().split(/\s*,\s*/).forEach(function (item) {
+      item = item.trim();
+      if (item.length > 0) {
+        mapping[item] = true;
+      }
+    });
+    config[name] = mapping;
   });
-  config.authAuthorizedUsers = authorizedUsers;
-  //log(config)
+  log(config)
   
   return config;
 }
