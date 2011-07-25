@@ -9,12 +9,15 @@ NAME=$2
 if [[ -z "$MOLYBDENUM_URL" ]]; then
     MOLYBDENUM_URL="http://localhost:3333"
 fi
+CURL_OPTS=
 if [[ ! -z "$MOLYBDENUM_CREDENTIALS" ]]; then
-    CURL_USER_OPT="-u $MOLYBDENUM_CREDENTIALS"
-else
-    CURL_USER_OPT=
+    CURL_OPTS+=" -u $MOLYBDENUM_CREDENTIALS"
+fi
+if [[ ${MOLYBDENUM_URL:0:6} == "https:" ]]; then
+    CURL_OPTS+=" -k"
 fi
 
+
 echo "{\"repository\": {\"url\": \"$REPO\", \"name\": \"$NAME\"}}" \
-    | curl ${CURL_USER_OPT} ${MOLYBDENUM_URL}/api/repos -X POST \
+    | curl ${CURL_OPTS} ${MOLYBDENUM_URL}/api/repos -X POST \
     -H "Content-Type: application/json" -d @-

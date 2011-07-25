@@ -146,14 +146,8 @@ hook JSON format <http://help.github.com/post-receive-hooks/>):
       "repository": {
         "url": $git_clone_url,
         "name": $name
-      },
-      // These are optional:
-      "before": $before_sha,
-      "after": $after_sha,
-      "ref": $ref
+      }
     }
-
-At a minimum, only the "repository" key is required.
 
 
 #### example request
@@ -162,13 +156,8 @@ At a minimum, only the "repository" key is required.
         "repository": {
             "url": "git@code.example.com:cool-product.git",
             "name": "cool-product"
-        },
-        "before": "86fb0c2c2c37e71c218d386cc3f167496ce98c57",
-        "after": "1a071c8728d57845ed76de67b8e0cbf2caa63915",
-        "ref": "refs/heads/master"
+        }
     }' | curl {{ url }}/api/repos -X POST -H "Content-Type: application/json" -d @-
-
-TODO: add example post-receive hook script and post-receive webhook URL.
 
 #### successful response
 
@@ -176,18 +165,15 @@ TODO: add example post-receive hook script and post-receive webhook URL.
     Status: 200
 
     {
-      "success": true
+      "repository": {
+        "name": "cool-product",
+        "url": "git@code.example.com:cool-product.git",
+        "isCloned": false,
+        "isFetchPending": true
+      }
     }
 
-#### error response
 
-    ...
-    Status: 400
-
-    {
-      "success": true,
-      "error": "some description of the error"
-    }
 
 ## GET /api/repos/:repo
 
