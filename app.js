@@ -1667,7 +1667,7 @@ function loadConfig(configPath) {
     });
     config[name] = mapping;
   });
-  log(config)
+  //log(config)
   
   return config;
 }
