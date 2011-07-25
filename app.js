@@ -1032,8 +1032,7 @@ db = (function() {
         });
       }
 
-      //asyncForEach(_.values(this.repoFromName), _lookupCommitInRepo, function (err) {
-      asyncForEach([this.repoFromName["eol"]], _lookupCommitInRepo, function (err) {
+      asyncForEach(_.values(this.repoFromName), _lookupCommitInRepo, function (err) {
         if (err) {
           callback(err);
         } else {
