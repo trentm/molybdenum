@@ -108,18 +108,6 @@ function createApp(opts, config) {
         (req.remoteUser.uuid || "<no uuid>"));
       mustache403Response(res, req.remoteUser);
     }
-    /*
-    else if (req.url === "/api/repos") {
-      log("XXX hello", req.method);
-      log("Deny user '%s' (%s).", req.remoteUser.login,
-        (req.remoteUser.uuid || "<no uuid>"));
-      mustache403Response(res, req.remoteUser);
-    } else {
-      //log("Authorize user '%s' (%s).", req.remoteUser.login,
-      //  (req.remoteUser.uuid || "<no uuid>"));
-      next();
-    }
-  */
   }
 
 
