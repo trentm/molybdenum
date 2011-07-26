@@ -43,7 +43,6 @@ exports.main = main;
 //---- globals && config
 
 var log = console.log;
-var warn = console.warn;
 
 var config = null;
 var db;  // see "Database" below
@@ -575,7 +574,7 @@ function createApp(opts, config) {
           }
           res.end(blobOrTree.blob.data, "binary");
         } else {
-          //warn(req)
+          //log(req)
           viewAddCommit(view, blobOrTree.commit, moRepo.name, true);
           view.rawUrl = req.url.replace(/(\/[^/]+)\/blob/, '$1/raw');
           var mimetype = mime.lookup(path);
@@ -660,8 +659,8 @@ function createApp(opts, config) {
         gitExec(["show", moCommit.id], moRepo.dir, function(err, stdout, stderr) {
           if (err) {
             //TODO: include 'data' in error. return here? error response?
-            warn("error: Error fetching repository '"+moRepo.name+"' ("
-                 + moRepo.url+") diff '"+moCommit.id+"': "+err);
+            log("error: Error fetching repository '"+moRepo.name+"' ("
+                + moRepo.url+") diff '"+moCommit.id+"': "+err);
           }
           var diffStart = stdout.match(/^diff/m);
           var text = (diffStart ? stdout.slice(diffStart.index) : "");
@@ -1143,7 +1142,7 @@ function fetchRepoTask(repo) {
     gitExec(["fetch", "origin", "+refs/heads/*:refs/heads/*"], repo.dir, function(err, stdout, stderr) {
       if (err) {
         //TODO: include 'data' in error.
-        warn("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);
+        log("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);
       }
       worker.finish();
     });
@@ -1157,7 +1156,7 @@ function cloneRepoTask(repo) {
     var args = ["clone", "--bare", repo.url, tmpDir];
     gitExec(args, null, function(err, stdout, stderr) {
       if (err) {
-        warn("error: Error cloning repository '"+repo.name+"' ("
+        log("error: Error cloning repository '"+repo.name+"' ("
           +repo.url+") to '"+tmpDir+"': "+err
           +"\n-- args: "+args+"\n-- stdout:\n"+stdout+"\n-- stderr:\n"+stderr+"\n--");
         if (Path.existsSync(tmpDir)) {
@@ -1172,9 +1171,9 @@ function cloneRepoTask(repo) {
       args = ["config", "remote.origin.url", repo.url];
       gitExec(args, tmpDir, function(err2, stdout2, stderr2) {
         if (err2) {
-          warn("error: Error setting 'origin' remote on repository '"
+          log("error: Error setting 'origin' remote on repository '"
             +repo.name+"' ("+repo.url+") to '"+tmpDir+"': "+err2
-          +"\n-- args: "+args+"\n-- stdout:\n"+stdout2+"\n-- stderr:\n"+stderr2+"\n--");
+            +"\n-- args: "+args+"\n-- stdout:\n"+stdout2+"\n-- stderr:\n"+stderr2+"\n--");
           fs.rmdirSync(tmpDir)
           worker.finish();
           return;
@@ -1183,7 +1182,7 @@ function cloneRepoTask(repo) {
           fs.renameSync(tmpDir, repo.dir);
           repo.isCloned = true;
         } catch(ex) {
-          warn("error: Error moving repository '"+repo.name+"' clone from '"+
+          log("error: Error moving repository '"+repo.name+"' clone from '"+
             tmpDir+"' to '"+repo.dir+"'.");
         }
         worker.finish();
@@ -1401,7 +1400,7 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
   fs.readFile(templatesDir + '/' + templatePath, 'utf-8', function(err, template) {
     if (err) {
       //TODO: 500.mustache and use that for rendering. Include 'err' content.
-      warn(err);
+      log(err);
       res.writeHead(500, {
         "Content-Type": "text/html"
       })
@@ -1413,7 +1412,7 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
         view.debug = JSON.stringify(view, null, 2);
       } catch (ex) {
         // Log it, but don't break template rendering.
-        warn("warning: could not add 'debug' output to view: "+ex);
+        log("warning: could not add 'debug' output to view: "+ex);
       }
     }
     // TODO: content-length necessary?
@@ -1649,7 +1648,7 @@ function loadConfig(configPath) {
     resolveRelativePathVars(config, Path.dirname(configPath));
   }
   
-  // Resolve `authJoyeurs` var.
+  // Resolve csv vars.
   var csvVars = ["authAuthorizedUsers", "authAuthorizedPostReceiveUsers"];
   csvVars.forEach(function (name) {
     mapping = {};
@@ -1662,6 +1661,20 @@ function loadConfig(configPath) {
     config[name] = mapping;
   });
   //log(config)
+
+  // Resolve boolean vars.
+  var boolVars = [];
+  boolVars.forEach(function (name) {
+    if (!config[name] || config[name] === "false") {
+      config[name] = false;
+    } else if (config[name] === "true") {
+      config[name] = true;
+    } else {
+      throw new Error("error: illegal value for boolean '"+name
+        +"' config var: '"+config[name]
+        +"' (must be 'true' or 'false' or empty)");
+    }
+  });
   
   return config;
 }
@@ -1672,7 +1685,7 @@ function loadConfig(configPath) {
 
 function internalMainline(argv) {
   var opts = parseArgv(argv);
-  //warn(opts);
+  //log(opts);
   if (opts.help) {
     printHelp();
     return 0;
@@ -1709,10 +1722,27 @@ function internalMainline(argv) {
   var app = createApp(opts, config);
   app.listen(config.port, config.host);
   if (! opts.quiet) {
-    console.log('Molybdenum listening on <%s://%s:%s/> (%s mode, pid file %s).',
+    log('Molybdenum listening on <%s://%s:%s> (%s mode, pid file %s).',
       config.protocol, app.address().address, app.address().port,
       app.set('env'), (pidFile || '<none>'));
   }
+
+  // Optional redirector from http -> https.
+  if (config.httpRedirect) {
+    if (!(config.protocol === "https" && config.port === "443")) {
+      log("warning: Not running http redirect because not "
+        +"configured for https on port 443");
+    } else {
+      http.createServer(function(req, res) {
+        res.statusCode = 302;
+        res.setHeader("Location", config.httpRedirect);
+        res.end();
+      }).listen(80, config.host);
+      log("Http -> <%s> redirect server listening in <http://%s>.", 
+        config.httpRedirect, config.host);
+    }
+  }
+
   return 0;
 }
 
