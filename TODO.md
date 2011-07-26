@@ -1,29 +1,32 @@
 # feature requests
 
-- markdown rendering of .markdown|.md|.restdown et al files
+- markc: markdown rendering of .markdown|.md|.restdown et al files
 - link a jira ticket name in commit message to the jira URL (i.e. autolinks)
 - search by jira ticket name
 - list of ocmmits (history)
-- blame
+- markc: blame
+- rm: setup OpenGrok (whether or not on same server) and integrate with it where makes sense
+  Or consider cscope (http://cscope.sourceforge.net/), "since cscope kind of
+  understands JS and C, I wonder how bad it would be to read it's binary
+  database format."
 
 # bugs
 
+- scott: his fancy pants password probably isn't being encoded properly
+- trent: https://mo.joyent.com/usb-headnode/commit/d18310e4a341847eee0f1a03fcf0ad2796c1eb0a
+  that commit was on release-20110714 branch, but it shows master. Can that
+  be fixed easily?
 - josh: https://gq2ukvaa.joyent.us/cloud-api/blob/master/tools/watch-amqp.js
   and selected Branch: release-20110512
   returns a 404, should perhaps be a "file does not exist" (still a 404?)
 
 # medium prio
 
-- git bot ssh key (already have?)
 - 'POST /api/repos' should bail if the url doesn't match existing
 - redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1
 - button to add a repo on '/'
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
   posting with a different repo url.
-- better name. bluelight? no reason. head? shed (little place with some tools)?
-  molybdenum (element 42, "Mo" for short, "more" coloquial :)
-- Verify this: make gitteh build on solaris:
-  https://github.com/libgit2/libgit2/pull/138
 - GET /:repo/commits?page=n
 - reserved top-level names: commit, help, api, static, more?
 - refactor stuff out of app.js!
