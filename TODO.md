@@ -14,13 +14,16 @@
 
 - [TOP] https://mo.joyent.com/commit/e98de3c is broken. This feature is
   too brittle (if one repo is broken it all breaks)
-- [TOP] scott: his fancy pants password probably isn't being encoded properly
 - trent: https://mo.joyent.com/usb-headnode/commit/d18310e4a341847eee0f1a03fcf0ad2796c1eb0a
   that commit was on release-20110714 branch, but it shows master. Can that
   be fixed easily?
 - josh: https://gq2ukvaa.joyent.us/cloud-api/blob/master/tools/watch-amqp.js
   and selected Branch: release-20110512
   returns a 404, should perhaps be a "file does not exist" (still a 404?)
+- ':' in password is a problem:
+    https://github.com/senchalabs/connect/pull/331
+  Upgrade Connect (to 1.6.1?) when that is ready... and I guess push for an
+  express upgrade when that is released.
 
 # medium prio
 
