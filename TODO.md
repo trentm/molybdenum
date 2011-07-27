@@ -1,14 +1,16 @@
 # feature requests
 
+- josh: list of ocmmits (history)
 - markc: markdown rendering of .markdown|.md|.restdown et al files
 - link a jira ticket name in commit message to the jira URL (i.e. autolinks)
 - search by jira ticket name
-- list of ocmmits (history)
 - markc: blame
 - rm: setup OpenGrok (whether or not on same server) and integrate with it where makes sense
   Or consider cscope (http://cscope.sourceforge.net/), "since cscope kind of
   understands JS and C, I wonder how bad it would be to read it's binary
   database format."
+- rm, josh: Some way to get emails (digests, possibly) for recent/daily commits.
+  Featuritis danger here.
 
 # bugs
 
