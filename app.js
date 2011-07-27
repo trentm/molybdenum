@@ -1006,7 +1006,11 @@ db = (function() {
      *        callback(err, repo, commit)
      * If `err` is set, there was an internal error. Else if `commit`
      * is null, then the commit was not found. Else `commit` will be
-     * set.
+     * set. 
+     *
+     * Note that if there is an error with a particular repo, that
+     * will NOT be reported. This is so that a single bad apple can't
+     * bring everything down. Such errors will be logged.
      */
     lookupCommit: function lookupCommit(id, callback) {
       var theRepo = null;
@@ -1016,7 +1020,10 @@ db = (function() {
   
       function _lookupCommitInRepo(moRepo, cb) {
         moRepo.commit(id, function(err, moCommit) {
-          if (err) { return cb(err) }
+          if (err) { 
+            log("warning: error looking for commit in repo '%s' (%s): %s",
+              moRepo.name, moRepo.dir, err);
+          }
           if (moCommit) {
             theRepo = moRepo;
             theCommit = moCommit;

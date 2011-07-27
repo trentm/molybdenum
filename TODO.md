@@ -12,8 +12,6 @@
 
 # bugs
 
-- [TOP] https://mo.joyent.com/commit/e98de3c is broken. This feature is
-  too brittle (if one repo is broken it all breaks)
 - trent: https://mo.joyent.com/usb-headnode/commit/d18310e4a341847eee0f1a03fcf0ad2796c1eb0a
   that commit was on release-20110714 branch, but it shows master. Can that
   be fixed easily?
