@@ -23,6 +23,7 @@ var git = require('trentm-git');
 var chaingang = require(__dirname + '/node_modules/chain-gang/lib/index.js');
 var base64_encode = require('base64').encode;
 var Mustache = require('mustache');
+var datetime = require('trentm-datetime');
 var _ = require('underscore');
 var mime = require('mime');
 var hashlib = require('trentm-hashlib');
@@ -261,6 +262,34 @@ function createApp(opts, config) {
         jsonResponse(res, refs);
       })
     }
+  });
+  
+  //TODO:XXX document this
+  // GET /api/repos/:repo/commits/:branch
+  app.get('/api/repos/:repo/commits/:branch', function(req, res) {
+    // 1. Determine the repo.
+    var moRepo = db.repoFromName[req.params.repo];
+    if (moRepo === undefined) {
+      jsonErrorResponse(res, "no such repo: '"+name+"'", 404);
+      return;
+    }
+    //TODO:XXX: handle the repo still cloning.
+
+    var branch = req.params.branch;
+    var limit = 40; //XXX
+    var offset = 0; //XXX
+    moRepo.commits(branch, limit, offset, function(err, commits) {
+      if (err) {
+        return jsonErrorResponse(res,
+          "error getting commits for repo '"+moRepo.name+"'", 500, err);
+      }
+      jsonResponse(res, {
+        branch: branch,
+        limit: limit,
+        offset: offset,
+        commits: commits
+      });
+    });
   });
 
   // GET /api/repos/:repo/commit/:commitish-or-ref
@@ -596,6 +625,103 @@ function createApp(opts, config) {
       });
     });
   });
+  
+  
+  // GET /:repo/commits
+  app.get('/:repo/commits', function(req, res) {
+    res.redirect("/" + req.params.repo + "/commits/master");
+  });
+
+  // GET /:repo/commits/:ref
+  app.get('/:repo/commits/:ref', function(req, res) {
+    var name = req.params.repo;
+    var moRepo = db.repoFromName[name];
+    if (moRepo === undefined) {
+      mustache404Response(res, req.url);
+      return;
+    }
+
+    var ref = req.params.ref;
+    var view = {
+      repository: moRepo
+    };
+
+    moRepo.refs(function(err, moRefs) {
+      if (err) {
+        mustache500Response(res, "error getting refs for repo  '"+moRepo.name+"'", err);
+        return;
+      }
+      var currTag = null, currBranch = null;
+      // If there is a tag and head with the same name, the tag wins here.
+      // TODO: is that reasonable?
+      if (moRefs.tags.indexOf(ref) != -1) {
+        currTag = ref;
+      } else if (moRefs.branches.indexOf(ref) != -1) {
+        currBranch = ref;
+      } else {
+        // Must be a commitish.
+      }
+
+      view.branches = moRefs.branches.map(function(b) {
+        return {
+          name: b,
+          href: '/' + moRepo.name + '/commits/' + b,
+          isCurr: b===currBranch
+        }
+      });
+      view.tags = moRefs.tags.map(function(t) {
+        return {
+          name: t,
+          href: '/' + moRepo.name + '/commits/' + t,
+          isCurr: t===currTag
+        }
+      });
+    
+      // Paging
+      var perPage = 40;
+      var page = (Number(req.query.page) ? parseInt(req.query.page) : 1);
+      var offset = 0;
+      if (page > 0) {
+        offset = perPage * (page - 1);
+      }
+      view.page = page;
+      view.prevPage = (page - 1) || null;
+      view.nextPage = page + 1;
+      
+      moRepo.commits(ref, perPage+1, offset, function(err, moCommits) {
+        if (err) {
+          return mustache500Response(res,
+            "Error getting git commits: repo='"+moRepo.name+"' ref='"+ref+"'",
+            JSON.stringify(err, null, 2));
+        }
+        if (!moCommits || moCommits.length === 0) {
+          return mustache404Response(res, req.url);
+        }
+        if (moCommits.length < perPage + 1) {
+          // Last page.
+          view.nextPage = null;
+        } else {
+          moCommits.pop();
+        }
+
+        var commitsFromDate = [];
+        moCommits.forEach(function (c) {
+          viewCommitFromMoCommit(c, moRepo.name, true)
+          var date = datetime.format(c.author.time, "%Y-%m-%d");
+          var lastCommits = (commitsFromDate.length !== 0
+            && commitsFromDate[commitsFromDate.length-1]);
+          if (!lastCommits || lastCommits.date !== date) {
+            lastCommits = {date: date, commits: []};
+            commitsFromDate.push(lastCommits);
+          }
+          lastCommits.commits.push(c);
+        });
+        view.commitsFromDate = commitsFromDate;
+        view.title = "Commits on " + ref + " (" + moRepo.name + ") \u2014 " + config.name;
+        mustacheResponse(res, "commits.mustache", view);
+      });
+    });
+  });
 
   // GET /:repo/commit/:id
   app.get('/:repo/commit/:id', function(req, res) {
@@ -776,6 +902,60 @@ db = (function() {
     }
   }
 
+  function _commitFromGitCommit(gitCommit) {
+    var commit = {
+      id: gitCommit.id,
+      message: gitCommit.message,
+      author: {
+        name: gitCommit.author.name,
+        email: gitCommit.author.email,
+        time: gitCommit.authored_date
+      },
+      parents: gitCommit.parents.map(function (p) { return p.id }),
+      tree: gitCommit.tree.id
+    };
+    if (gitCommit.commiter) {
+      commit.commiter = {
+        name: gitCommit.commiter.name,
+        email: gitCommit.commiter.email,
+        time: gitCommit.commited_date
+      };
+    }
+    return commit;
+  }
+
+  /**
+   * Get commits for this repo.
+   *
+   * @param head {String} Which head (aka branch) from which to start,
+   *    e.g. "master".
+   * @param limit {Number} The max number of commits to return, e.g. 10.
+   * @param offset {Number} The commit index from which to start, e.g. 5
+   *    means to skip the first 5 commits. Use this and `limit` for
+   *    paging.
+   *
+   * Calls this on completion:
+   *    callback(err, commits)
+   */
+  Repository.prototype.commits = function commits(head, limit, offset, callback) {
+    var this_ = this;
+    this._getGitRepo(function(err, gitRepo) {
+      if (err) { return callback(err); }
+      gitRepo.commits(head, limit, offset, function(err2, gitCommits) {
+        if (err2) {
+          try { callback(err2); } catch (e) { log(e.stack || e) }
+          return;
+        }
+        if (!gitCommits) {
+          try { callback(null, null); } catch (e) { log(e.stack || e) }
+          return;
+        }
+        var commits = gitCommits.map(_commitFromGitCommit);
+        try { callback(null, commits); } catch(e) { log(e.stack || e) }
+      });
+    });
+  }
+
   /**
    * Get the given commit. Calls:
    *    callback(err, commit)
@@ -793,24 +973,7 @@ db = (function() {
           try { callback(null, null); } catch (e) { log(e.stack || e) }
           return;
         }
-        var commit = {
-          id: gitCommit.id,
-          message: gitCommit.message,
-          author: {
-            name: gitCommit.author.name,
-            email: gitCommit.author.email,
-            time: gitCommit.authored_date
-          },
-          parents: gitCommit.parents.map(function (p) { return p.id }),
-          tree: gitCommit.tree.id
-        };
-        if (gitCommit.commiter) {
-          commit.commiter = {
-            name: gitCommit.commiter.name,
-            email: gitCommit.commiter.email,
-            time: gitCommit.commited_date
-          };
-        }
+        var commit = _commitFromGitCommit(gitCommit);
         try { callback(null, commit); } catch(e) { log(e.stack || e) }
       });
     });
@@ -1099,19 +1262,21 @@ function viewAddForTextbox(view, fieldName, text, filename, callback) {
  * object with all the necessary processed template variables
  * used by the "commitbox.mustache" partial.
  *
- * @param view {Object} A mustache template view object.
  * @param commit {moCommit} The object returned from `moRepo.commit()`.
  * @param repoName {String}
  * @param brief {Boolean} Add the necessary data and flags for the
- *    commit.mustache to render a "brief" commit box.
- * @param name {String} The name of field to add to `view`. Default is
- *    "commit".
+ *    commitbox.mustache to render a "brief" commit box.
+ *
+ * Warning: This changes the given "commit" object **in-place**.
  */
-function viewAddCommit(view, commit, repoName, brief /* =false */,
-                       name /* ="commit" */) {
-  if (brief === undefined || brief === null) brief = false;
+//XXX viewAddCommit drop this
+function viewAddCommit(view, commit, repoName, brief, name) {
   name = name || "commit";
-  var c = view[name] = commit;
+  view[name] = viewCommitFromMoCommit(commit, repoName, brief);
+}
+function viewCommitFromMoCommit(commit, repoName, brief /* =false */) {
+  if (brief === undefined || brief === null) brief = false;
+  var c = commit;
 
   // Used for gravatar links.
   c.author.emailMd5 = hashlib.md5(c.author.email.toLowerCase());
@@ -1129,6 +1294,8 @@ function viewAddCommit(view, commit, repoName, brief /* =false */,
   });
   c.links = links.join('\n');
 
+  c.author.timeAgo = datetime.formatAgo(c.author.time);
+
   if (brief) {
     var line1 = c.message.split('\n', 1)[0]
     c.brief = {
@@ -1136,6 +1303,8 @@ function viewAddCommit(view, commit, repoName, brief /* =false */,
       href: "/" + repoName + "/commit/" + c.id
     }
   }
+  
+  return c;
 }
 
 

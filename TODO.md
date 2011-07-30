@@ -1,6 +1,11 @@
 # feature requests
 
 - josh: list of ocmmits (history)
+    - title h3 for commits page
+    - pill nav for all pages? "sources commits ..." along with menulist
+    - document and test api endpoint
+    - add paging to api endpoint
+    - drop viewAddCommit -> viewCommitFromMoCommit
 - markc: markdown rendering of .markdown|.md|.restdown et al files
 - link a jira ticket name in commit message to the jira URL (i.e. autolinks)
 - search by jira ticket name
@@ -14,6 +19,20 @@
 
 # bugs
 
+- [TOP] trentm: my is mo.joyent.com not getting the new "mg" branches
+  in agents, agents-installer, smartlogin, ca?! It is there in a fresh
+  pull of agents-installer.
+- trentm: https://mo.joyent.com/operator-toolkit/blob/master/bin/sdc-dsimport#L136-137
+  Bugs in leading whitespace in there. Syntax coloring bug?
+- wdp: the "brief" commit message isn't always all that is wanted (for those
+  that don't stick to one line fo the summary)
+  idea: Perhaps add a "more...". Could be a link to drop down the whole
+  message. Or, if common enough could take first *two* lines? Raises minimum
+  box height.
+- trentm: https://mo.joyent.com/agents/commit/7ce20d24794f32303891908db0311f9b58ee8bf2
+  That diff is 25k lines! and blows Mo's mind. Guard on num lines (or time?)
+  for lexing. Or is the prob rendering on the client side? Anyway, want a
+  low-res fallback.
 - trent: https://mo.joyent.com/usb-headnode/commit/d18310e4a341847eee0f1a03fcf0ad2796c1eb0a
   that commit was on release-20110714 branch, but it shows master. Can that
   be fixed easily?

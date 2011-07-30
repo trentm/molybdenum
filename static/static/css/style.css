@@ -84,7 +84,7 @@ h2 {
 h3 {
   font-size: 21px;
   line-height: 24px;
-  padding: 24px 0 24px 0;
+  padding: 24px 0 0 0;
 }
 h4 {
   font-size: 16px;
@@ -397,6 +397,29 @@ div.line {
 
 
 
+/* ---- widget: pagelinks (e.g. on /:repo/commits page) */
+
+#pagelinks {
+  margin-top: 24px;
+  font-size: 80%;
+}
+.pagelink {
+  border: 1px solid #268bd2;
+  padding: 3px 5px;
+  margin-right: 5px;
+}
+.pagelink:hover {
+  border-color: #cb4b16;
+}
+.pagelinkdisabled {
+  color: #bbb;
+  border: 1px solid #bbb;
+  padding: 3px 5px;
+  margin-right: 5px;
+}
+
+
+
 /* ---- page: index */
 
 
@@ -443,6 +466,10 @@ pre.commitlinks {
   color: #999;
   font-size: 70%;
   font-family: Consolas, Monaco, "Lucida Console", "Courier New", monospace;
+}
+
+.commitbox + .commitbox {
+  margin-top: -1px;
 }
 
 

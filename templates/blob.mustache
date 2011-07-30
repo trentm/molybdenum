@@ -5,13 +5,15 @@
 <div id="wrapper">
 <div id="main">
 
+{{#commit}}
 {{> commitbox}}
+{{/commit}}
 
-<h2>
+<h3>
 {{#breadcrumbs}}
 {{#href}}<a href="{{href}}">{{/href}}{{name}}{{#href}}</a>{{/href}}&nbsp;{{#dir}}/&nbsp;{{/dir}}
 {{/breadcrumbs}}
-</h2>
+</h3>
 
 <div id="actions">
   <a href="{{rawUrl}}">raw</a>
