@@ -16,6 +16,7 @@
   database format."
 - rm, josh: Some way to get emails (digests, possibly) for recent/daily commits.
   Featuritis danger here.
+- andres,trent: gist-like functionality
 
 # bugs
 
