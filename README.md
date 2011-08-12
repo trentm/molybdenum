@@ -23,7 +23,9 @@ something like this to your master git repo's "hooks/post-receive" file:
             "url": "git@code.example.com:cool-product.git",
             "name": "cool-product"
         }
-    }' | curl --connect-timeout 2 -Ss -k -u "${MOLYBDENUM_CREDENTIALS}" "${MOLYBDENUM_URL}/api/repos" -H "Content-Type: application/json" -X POST -d @- >/dev/null || echo "Error telling Molybdenum. Continuing anyway."
+    }' | curl --connect-timeout 2 -Ss -k -u "${MOLYBDENUM_CREDENTIALS}" \
+        "${MOLYBDENUM_URL}/api/repos" -H "Content-Type: application/json" \
+        -X POST -d @- >/dev/null || echo "Error telling Molybdenum. Continuing anyway."
 
 Note: Be sure to make "hooks/post-receive" executable (commonly overlooked).
 

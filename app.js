@@ -1075,7 +1075,7 @@ db = (function() {
       var this_ = this;
       var timestamp = (new Date()).toISOString();
       chain.add(fetchRepoTask(this), "fetch:"+this.name+":"+timestamp, function(err) {
-        this._cache = {};
+        this_._cache = {};
         log("Finished fetch task (repository '"+this_.name+"').");
         this_.numActiveFetches -= 1;
       });
