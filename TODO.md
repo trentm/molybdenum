@@ -17,9 +17,13 @@
 - rm, josh: Some way to get emails (digests, possibly) for recent/daily commits.
   Featuritis danger here.
 - andres,trent: gist-like functionality
+- stu: a list of contained branches on a commit would be very nice
+- andres: headroom for real "#L<number>" anchors (via JS)
 
 # bugs
 
+- "branch" for a commit is bogus, e.g.:
+   https://mo.joyent.com/mcp_api_admin/commit/97bdd549800b1433a8919a5fb79a1603cf9778b0
 - [TOP] trentm: my is mo.joyent.com not getting the new "mg" branches
   in agents, agents-installer, smartlogin, ca?! It is there in a fresh
   pull of agents-installer.
