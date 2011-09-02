@@ -24,11 +24,12 @@
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#GET-/api/repos/:repo"><span class="verb">GET</span> <span>/api/repos/:repo</span></a></li>
     <li><a href="#DELETE-/api/repos/:repo"><span class="verb">DELETE</span> <span>/api/repos/:repo</span></a></li>
+    <li><a href="#GET-/api/repos/:repo/commits/:branch"><span class="verb">GET</span> <span>/api/repos/:repo/commits/:branch</span></a></li>
+    <li><a href="#GET-/api/repos/:repo/commit/:commitish-or-ref"><span class="verb">GET</span> <span>/api/repos/:repo/commit/:commitish-or-ref</span></a></li>
     <li><a href="#GET-/api/repos/:repo/refs"><span class="verb">GET</span> <span>/api/repos/:repo/refs</span></a></li>
-    <li><a href="#GET-/api/repos/:repo/refs/:ref/:path"><span class="verb">GET</span> <span>/api/repos/:repo/refs/:ref/:path</span></a></li>
+    <li><a href="#GET-/api/repos/:repo/refs/:ref[/:path]"><span class="verb">GET</span> <span>/api/repos/:repo/refs/:ref[/:path]</span></a></li>
     <li><a href="#GET-/api/commit/:id"><span class="verb">GET</span> <span>/api/commit/:id</span></a></li>
   </ul></li>
-  <li><a href="#sitemap">Sitemap</a></li>
 </ul>
 
     </div>
@@ -144,7 +145,7 @@ on the request "Accept" header.</p>
 
 <h2 id="GET-/api/repos"><span>GET /api/repos</span></h2>
 
-<p>List all repositories currently in the molybdenum server. (TODO: add paging)</p>
+<p>List all repositories currently in the molybdenum server.</p>
 
 <h4>example request</h4>
 
@@ -246,35 +247,18 @@ Status: 404
 
 <h2 id="DELETE-/api/repos/:repo"><span>DELETE /api/repos/:repo</span></h2>
 
+<h2 id="GET-/api/repos/:repo/commits/:branch"><span>GET /api/repos/:repo/commits/:branch</span></h2>
+
+<h3>options</h3>
+
+<p>||limit||Integer||
+||offset||Integer||</p>
+
+<h2 id="GET-/api/repos/:repo/commit/:commitish-or-ref"><span>GET /api/repos/:repo/commit/:commitish-or-ref</span></h2>
+
 <h2 id="GET-/api/repos/:repo/refs"><span>GET /api/repos/:repo/refs</span></h2>
 
-<h2 id="GET-/api/repos/:repo/refs/:ref/:path"><span>GET /api/repos/:repo/refs/:ref/:path</span></h2>
-
-<pre><code>GET /api/repos/eol/ref/master/README.md
-{
-    "ref": "refs/heads/master",
-    "path": "README.md",
-    "type": "blob",
-    "blob" {
-        "id": ...
-        "data": ...
-    }
-}
-...OR...
-GET /api/repos/eol/refs/master/lib
-{
-    "ref": "refs/heads/master",
-    "path": "lib",
-    "type": "tree",
-    "tree": {
-      "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
-      "entries":
-         [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
-             name: 'eol.py',
-             attributes: 33261 } ]
-    }
-}
-</code></pre>
+<h2 id="GET-/api/repos/:repo/refs/:ref[/:path]"><span>GET /api/repos/:repo/refs/:ref[/:path]</span></h2>
 
 <h2 id="GET-/api/commit/:id"><span>GET /api/commit/:id</span></h2>
 
@@ -307,10 +291,6 @@ GET /api/repos/eol/refs/master/lib
   }
 }
 </code></pre>
-
-<h1 id="sitemap">Sitemap</h1>
-
-<p>TODO:...</p>
 
     </div>
 <script type="text/javascript" charset="utf-8">

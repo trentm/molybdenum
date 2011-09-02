@@ -112,7 +112,7 @@ on the request "Accept" header.
 
 ## GET /api/repos
 
-List all repositories currently in the molybdenum server. (TODO: add paging)
+List all repositories currently in the molybdenum server.
 
 #### example request
 
@@ -213,36 +213,21 @@ Return info on all current repositories in the molybdenum server.
 ## DELETE /api/repos/:repo
 
 
+## GET /api/repos/:repo/commits/:branch
+
+### options
+
+||limit||Integer||
+||offset||Integer||
+
+## GET /api/repos/:repo/commit/:commitish-or-ref
+
+
+
 ## GET /api/repos/:repo/refs
 
 
-## GET /api/repos/:repo/refs/:ref/:path
-
-    GET /api/repos/eol/ref/master/README.md
-    {
-        "ref": "refs/heads/master",
-        "path": "README.md",
-        "type": "blob",
-        "blob" {
-            "id": ...
-            "data": ...
-        }
-    }
-    ...OR...
-    GET /api/repos/eol/refs/master/lib
-    {
-        "ref": "refs/heads/master",
-        "path": "lib",
-        "type": "tree",
-        "tree": {
-          "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
-          "entries":
-             [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
-                 name: 'eol.py',
-                 attributes: 33261 } ]
-        }
-    }
-
+## GET /api/repos/:repo/refs/:ref[/:path]
 
 
 ## GET /api/commit/:id
@@ -277,6 +262,3 @@ Return info on all current repositories in the molybdenum server.
     }
 
 
-# Sitemap
-
-TODO:...

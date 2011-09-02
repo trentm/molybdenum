@@ -276,8 +276,20 @@ function createApp(opts, config) {
     //TODO:XXX: handle the repo still cloning.
 
     var branch = req.params.branch;
-    var limit = 40; //XXX
-    var offset = 0; //XXX
+    var limit;
+    if (req.query.limit) {
+      limit = Number(req.query.limit);
+    }
+    if (isNaN(limit)) {
+      limit = 40;
+    }
+    var offset;
+    if (req.query.offset) {
+      offset = Number(req.query.offset);
+    }
+    if (isNaN(offset)) {
+      offset = 0;
+    }
     moRepo.commits(branch, limit, offset, function(err, commits) {
       if (err) {
         return jsonErrorResponse(res,
@@ -930,6 +942,7 @@ db = (function() {
    * @param head {String} Which head (aka branch) from which to start,
    *    e.g. "master".
    * @param limit {Number} The max number of commits to return, e.g. 10.
+   *    A limit of 0 means return all commits.
    * @param offset {Number} The commit index from which to start, e.g. 5
    *    means to skip the first 5 commits. Use this and `limit` for
    *    paging.
@@ -938,6 +951,9 @@ db = (function() {
    *    callback(err, commits)
    */
   Repository.prototype.commits = function commits(head, limit, offset, callback) {
+    if (limit === 0) {
+      limit = Infinity;
+    }
     var this_ = this;
     this._getGitRepo(function(err, gitRepo) {
       if (err) { return callback(err); }
