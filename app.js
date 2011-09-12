@@ -107,7 +107,7 @@ function createApp(opts, config) {
     } else if (!config.authAuthorizedUsers
         || Object.keys(config.authAuthorizedUsers).length === 0) {
       // Empty 'authAuthorizedUsers' means, allow all.
-      log("Authorize user (allow all).");
+      //log("Authorize user (allow all).");
       next();
     } else if (!req.remoteUser) {
       mustache500Response(res,
