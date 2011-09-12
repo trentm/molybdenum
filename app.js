@@ -118,13 +118,6 @@ function createApp(opts, config) {
       //log("Authorize user '%s' (%s).", req.remoteUser.login,
       //  (req.remoteUser.uuid || "<no uuid>"));
       next();
-    } else if (req.url === "/api/repos" && req.method == "POST"
-        && (config.authAuthorizedPostReceiveUsers.hasOwnProperty(req.remoteUser.login)
-            || (req.remoteUser.uuid
-                && config.authAuthorizedPostReceiveUsers.hasOwnProperty(req.remoteUser.uuid)))) {
-      //log("Authorize user '%s' (%s) for post-receive.", req.remoteUser.login,
-      //  (req.remoteUser.uuid || "<no uuid>"));
-      next();
     } else {
       log("Deny user '%s' (%s).", req.remoteUser.login,
         (req.remoteUser.uuid || "<no uuid>"));
@@ -1863,7 +1856,7 @@ function loadConfig(configPath) {
   }
   
   // Resolve csv vars.
-  var csvVars = ["authAuthorizedUsers", "authAuthorizedPostReceiveUsers"];
+  var csvVars = ["authAuthorizedUsers"];
   csvVars.forEach(function (name) {
     mapping = {};
     (config[name] || "").trim().split(/\s*,\s*/).forEach(function (item) {
