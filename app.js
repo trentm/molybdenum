@@ -68,7 +68,9 @@ function createApp(opts, config) {
 
   var auth, basicAuthMiddleware, authPublicAnonymousUser;
   if (config.authMethod === "public") {
-    authPublicAnonymousUser = JSON.parse(config.authPublicAnonymousUser);
+    authPublicAnonymousUser = (config.authPublicAnonymousUser
+      ? JSON.parse(config.authPublicAnonymousUser)
+      : null);
   } else {
     auth = createAuth(config);
     basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
@@ -79,7 +81,19 @@ function createApp(opts, config) {
     if (skipAuthPaths[req.url] !== undefined) {
       next();
     } else if (config.authMethod === "public") {
-      req.remoteUser = authPublicAnonymousUser;
+      if (authPublicAnonymousUser) {
+        req.remoteUser = authPublicAnonymousUser
+      } else if (req.headers["x-authorized-user"]) {
+        try {
+          req.remoteUser = JSON.parse(req.headers["x-authorized-user"]);
+        } catch(ex) {
+          return mustache500Response(res,
+            "Error parsing 'X-Authorized-User' header: '"+req.headers["x-authorized-user"]+"'");
+        }
+      } else {
+        return mustache500Response(res,
+          "Error determine user info: no 'authPublicAnonymousUser' config setting and no 'X-Authorized-User' header");
+      }
       next();
     } else {
       basicAuthMiddleware(req, res, next);

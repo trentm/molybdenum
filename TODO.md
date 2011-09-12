@@ -27,6 +27,12 @@
 - stu: a list of contained branches on a commit would be very nice
 - andres: headroom for real "#L<number>" anchors (via JS)
 
+# high prio
+
+- no cache headers on content. E.g. all images/css/js pulled everytime!
+  Or is that just express dev mode?
+
+
 # bugs
 
 - "branch" for a commit is bogus, e.g.:
