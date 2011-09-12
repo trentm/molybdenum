@@ -6,11 +6,18 @@
     - document and test api endpoint
     - add paging to api endpoint
     - drop viewAddCommit -> viewCommitFromMoCommit
+- josh: list of commits for *all* repos (TOOLS-25?)
+    GET /api/repos/:repo/commits/:branch
+    GET /api/commit/:id
+    GET /commit/:id
+    New:
+        GET /api/commits/:branch
+        GET /commits/:branch
 - markc: markdown rendering of .markdown|.md|.restdown et al files
 - link a jira ticket name in commit message to the jira URL (i.e. autolinks)
 - search by jira ticket name
 - markc: blame
-- rm: setup OpenGrok (whether or not on same server) and integrate with it where makes sense
+- rm: opengrok integration. 
   Or consider cscope (http://cscope.sourceforge.net/), "since cscope kind of
   understands JS and C, I wonder how bad it would be to read it's binary
   database format."

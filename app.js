@@ -66,12 +66,20 @@ function createApp(opts, config) {
     "/api/ping": true
   };
 
-  var auth = createAuth(config);
-  var basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
-    auth.authenticate(username, password, cb);
-  });
+  var auth, basicAuthMiddleware, authPublicAnonymousUser;
+  if (config.authMethod === "public") {
+    authPublicAnonymousUser = JSON.parse(config.authPublicAnonymousUser);
+  } else {
+    auth = createAuth(config);
+    basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
+      auth.authenticate(username, password, cb);
+    });
+  }
   function authMiddleware(req, res, next) {
     if (skipAuthPaths[req.url] !== undefined) {
+      next();
+    } else if (config.authMethod === "public") {
+      req.remoteUser = authPublicAnonymousUser;
       next();
     } else {
       basicAuthMiddleware(req, res, next);
