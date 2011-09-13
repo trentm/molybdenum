@@ -17,5 +17,21 @@
 <div id="header1"><div id="header2">
   <a id="logo" href="/">{{ name }}</a>
   {{# repository }}&mdash; <a href="/{{ name }}">{{ name }}</a>{{/ repository }}
+
+  <div id="headernav">
+  {{# navLinks }}
+  {{^ first }}<span>&middot;</span>{{/ first }}
+  <span><a href="{{ href }}">{{ name }}</a></span>
+  {{/ navLinks }}
+  
+  {{# searchForm }}
+  <form id="searchform" action="{{ href }}">
+    <input type="search" size="24" id="{{ q }}" name="{{ q }}" placeholder="Search {{ name }}">
+    {{# hidden }}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {{/ hidden }}
+  </form>
+  {{/ searchForm }}
+  </div>
 </div></div>
 </header>

@@ -1603,7 +1603,12 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
       view[key] = defaultView[key];
     }
   });
+  // Add view-specific vars for the possible 'searchForm'.
+  if (view.repository) {
+    view.searchFormRepo = view.repository.name;
+  }
 
+  //TODO: should cache this in production
   fs.readFile(templatesDir + '/' + templatePath, 'utf-8', function(err, template) {
     if (err) {
       //TODO: 500.mustache and use that for rendering. Include 'err' content.
@@ -1921,9 +1926,34 @@ function internalMainline(argv) {
     name = name.slice(0, name.lastIndexOf('.'));
     templatePartials[name] = fs.readFileSync(path, 'utf-8');
   });
+  var navLinks = Object.keys(config.navLinks).map(
+    function(k) { return {name:k, href:config.navLinks[k]}; });
+  if (navLinks.length > 0) {
+    navLinks[0].first = true;
+  }
+  if (config.searchForm.hidden) {
+    config.searchForm.hidden = config.searchForm.hidden.split(',').map(
+      function(i) {
+        var idx = i.indexOf('=');
+        var name = i.slice(0, idx);
+        var value = i.slice(idx+1);
+        if (value[0] == '$') {
+          // Special searchForm template vars. See
+          // "default-config/molybdenum.ini"'s docs on "searchForm".
+          switch (value.slice(1)) {
+          case "repo":
+            value = "{{ searchFormRepo }}"
+            break;
+          }
+        }
+        return {name: name, value: value};
+      });
+  }
   defaultView = {
     title: config.name,
-    name: config.name
+    name: config.name,
+    navLinks: navLinks,
+    searchForm: config.searchForm
   };
 
   var app = createApp(opts, config);

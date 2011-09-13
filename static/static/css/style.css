@@ -230,6 +230,21 @@ ul ul ul { list-style-type: circle; }
   padding: 12px 12px;
 }
 
+#headernav {
+  float: right;
+  position: relative;
+  bottom: -3px;
+}
+#headernav span {
+  margin-left: 6px;
+}
+#searchform {
+  margin-left: 6px;
+  display: inline;
+  position: relative;
+  bottom: 3px;
+}
+
 #logo {
   font-size: 24px;
 }
