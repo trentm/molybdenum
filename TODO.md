@@ -37,9 +37,6 @@
 
 - "branch" for a commit is bogus, e.g.:
    https://mo.joyent.com/mcp_api_admin/commit/97bdd549800b1433a8919a5fb79a1603cf9778b0
-- [TOP] trentm: my is mo.joyent.com not getting the new "mg" branches
-  in agents, agents-installer, smartlogin, ca?! It is there in a fresh
-  pull of agents-installer.
 - trentm: https://mo.joyent.com/operator-toolkit/blob/master/bin/sdc-dsimport#L136-137
   Bugs in leading whitespace in there. Syntax coloring bug?
 - wdp: the "brief" commit message isn't always all that is wanted (for those
