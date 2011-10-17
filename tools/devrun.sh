@@ -4,7 +4,7 @@
 # If you have `multitail` it will tail the redis and main server logs.
 #
 # Usage:
-#   support/devrun.sh HUB-INI-PATH
+#   tools/devrun.sh HUB-INI-PATH
 #
 
 if [ "$DEBUG" != "" ]; then
@@ -54,7 +54,7 @@ mkdir -p tmp/data
 ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 
 #echo "== start redis (tmp/redis.log)"
-#$ROOT/deps/redis/src/redis-server $ROOT/support/redis.conf
+#$ROOT/deps/redis/src/redis-server $ROOT/tools/redis.conf
 
 echo "== start molybdenum (tmp/molybdenum.log)"
 ${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/molybdenum.log 2>&1 &

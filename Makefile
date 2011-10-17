@@ -77,17 +77,17 @@ tmp:
 run: tmp 
 	@if [ ! -f dev.ini ]; then \
 	    echo "error: 'dev.ini' does not exist."; \
-	    echo " - Create it: 'cp support/dev.ini.in dev.ini'"; \
+	    echo " - Create it: 'cp tools/dev.ini.in dev.ini'"; \
 	    echo " - Optionally tweak settings (e.g. auth)."; \
 	    echo " - Re-run 'make run'."; \
 	    exit 1; \
 	fi
-	support/devrun.sh dev.ini
+	tools/devrun.sh dev.ini
 redis-cli:
 	deps/redis/src/redis-cli -p 6401
 
 doc:
-	./support/restdown -v -b support/restdown-brand -m static/static docs/api.md
+	./tools/restdown -v -b tools/restdown-brand -m static/static docs/api.md
 
 test:
 	(cd test && $(MAKE) test)
