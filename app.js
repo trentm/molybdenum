@@ -1706,7 +1706,7 @@ function printHelp() {
   sys.puts("                Specify config file to load.");
   sys.puts("");
   sys.puts("Environment:");
-  sys.puts("  HUB_CONFIG    Path to config file to load.");
+  sys.puts("  MOLYBDENUM_CONFIG    Path to config file to load.");
 }
 
 
