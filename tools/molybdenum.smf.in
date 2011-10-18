@@ -15,7 +15,7 @@
     <method_context project=':default' working_directory=':default'>
       <method_credential group='jill' privileges='basic,net_privaddr' user='jill'/>
       <method_environment>
-        <envvar name='MOLYBDENUM_CONFIG' value='/home/jill/config/molybdenum.ini'/>
+        <envvar name='MOLYBDENUM_CONFIG' value='/home/jill/config/molybdenum.json'/>
         <envvar name='NODE_ENV' value='production'/>
       </method_environment>
     </method_context>
