@@ -1,3 +1,0 @@
-dataDir=tmp/data
-authMethod=public
-authPublicAnonymousUser={"login": "guest"}

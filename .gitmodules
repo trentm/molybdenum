@@ -4,3 +4,6 @@
 [submodule "static/static/pygments-css"]
 	path = static/static/pygments-css
 	url = git://github.com/richleland/pygments-css.git
+[submodule "deps/restdown"]
+	path = deps/restdown
+	url = git://github.com/trentm/restdown.git

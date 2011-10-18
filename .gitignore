@@ -6,5 +6,5 @@
 /test/tmp
 /node_modules
 /npm-debug.log
-/dev.ini
+/dev.json
 /deps/node-sdc-clients

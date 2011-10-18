@@ -1,0 +1,358 @@
+---
+title: Molybdenum
+markdown2extras: wiki-tables
+logo-color: pink
+logo-font-family: google:Droid Sans, Verdana, sans-serif
+header-font-family: google:Droid Sans, Verdana, sans-serif
+---
+
+# Molybdenum
+
+### All API calls start with
+
+<pre class="base">
+{{ url }}/api
+</pre>
+
+### Format
+
+All responses are **JSON** (that is, except for the current HTML docs that
+you are reading).
+
+
+<!--
+    # JSON
+    GET /api/repos
+    GET /api/repos/:repo
+    DELETE /api/repos/:repo
+    GET /api/repos/:repo/refs
+    GET /api/repos/:repo/refs/:ref/:path
+        GET /api/repos/eol/ref/master/README.md
+        {
+            "ref": "refs/heads/master",
+            "path": "README.md",
+            "type": "blob",
+            "blob" {
+                "id": ...
+                "data": ...
+            }
+        }
+        ...OR...
+        GET /api/repos/eol/refs/master/lib
+        {
+            "ref": "refs/heads/master",
+            "path": "lib",
+            "type": "tree",
+            "tree": {
+              "id": "0bbd683f331433c826bdcfbc31014c1f65713348",
+              "entries":
+                 [ { id: 'ae2e0f752a4d4363e33f92caacf7bae0042f587e',
+                     name: 'eol.py',
+                     attributes: 33261 } ]
+            }
+        }
+        GET /api/commit/:id
+        {
+          "commit": {
+            "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
+            "message": "slight adding to Tim's test case for html5 block tags\n",
+            "author": {
+              "name": "Trent Mick",
+              "email": "trentm@gmail.com",
+              "time": "2011-03-23T04:48:40.000Z",
+              "timeOffset": -420
+            },
+            "committer": {
+              "name": "Trent Mick",
+              "email": "trentm@gmail.com",
+              "time": "2011-03-23T04:48:40.000Z",
+              "timeOffset": -420
+            },
+            "parents": [
+              "b72fee60f3c25e70d349567578f01011c450b5a5"
+            ],
+            "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
+          },
+          "repository": {
+            "name": "markdown2",
+            "url": "git@github.com:trentm/python-markdown2.git",
+            "isCloned": true,
+            "isFetchPending": false
+          }
+        }
+
+    # HTML
+    GET /:repo
+    GET /:repo/tree/:ref/:path
+    GET /:repo/blob/:ref/:path
+    GET /:repo/raw/:ref/:path
+    GET /:repo/commit/:id
+    GET /:repo/commits/:ref
+    
+
+-->
+
+
+# General API
+
+## GET /api
+
+Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.
+
+#### example JSON response
+
+    {
+      "endpoints": [
+        ...
+      ], 
+      "version": "1.0.0"
+    }
+
+
+
+
+# Repository API
+
+## GET /api/repos
+
+List all repositories currently in the molybdenum server.
+
+#### example request
+
+    $ curl {{ url }}/api/repos
+
+#### example response
+
+    {
+      "repositories": [
+        {
+          "name": "eol",
+          "url": "https://github.com/trentm/eol.git",
+          "dir": "/data/molybdenum/repos/eol.git",
+          // Note: The following are internal. Will probably be removed.
+          "isCloned": true,
+          "isFetchPending": false,
+          "numActiveFetches": 0,
+          ...
+        }
+      ]
+    }
+
+
+## POST /api/repos
+
+Let the server know about a new push to a repo. The request body must be a JSON
+object of the following form (compatible with the Github URL post-receive
+hook JSON format <http://help.github.com/post-receive-hooks/>):
+
+    {
+      "repository": {
+        "url": $git_clone_url,
+        "name": $name
+      }
+    }
+
+
+#### example request
+
+    $ echo '{
+        "repository": {
+            "url": "git@code.example.com:cool-product.git",
+            "name": "cool-product"
+        }
+    }' | curl {{ url }}/api/repos -X POST -H "Content-Type: application/json" -d @-
+
+#### successful response
+
+    ...
+    Status: 200
+
+    {
+      "repository": {
+        "name": "cool-product",
+        "url": "git@code.example.com:cool-product.git",
+        "isCloned": false,
+        "isFetchPending": true
+      }
+    }
+
+
+
+## GET /api/repos/:repo
+
+Return info on all current repositories in the molybdenum server.
+
+#### example request
+
+    $ curl {{ url }}/api/repos/eol
+
+#### example response
+
+    {
+      "repository": {
+        "name": "eol",
+        "url": "https://github.com/trentm/eol.git",
+        "dir": "/data/molybdenum/repos/eol.git",
+        ...
+      }
+    }
+
+#### failure response
+
+    ...
+    Status: 404
+
+    {
+      "error": {
+        "message": "no such repo: 'asdf'",
+        "code": 404
+      }
+    }
+
+
+## GET /api/repos/:repo
+
+
+## DELETE /api/repos/:repo
+
+
+## GET /api/repos/:repo/commits/:branch
+
+### options
+
+||limit||Integer||
+||offset||Integer||
+
+## GET /api/repos/:repo/commit/:commitish-or-ref
+
+
+
+## GET /api/repos/:repo/refs
+
+
+## GET /api/repos/:repo/refs/:ref[/:path]
+
+
+## GET /api/commit/:id
+    
+    {
+      "commit": {
+        "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
+        "message": "slight adding to Tim's test case for html5 block tags\n",
+        "author": {
+          "name": "Trent Mick",
+          "email": "trentm@gmail.com",
+          "time": "2011-03-23T04:48:40.000Z",
+          "timeOffset": -420
+        },
+        "committer": {
+          "name": "Trent Mick",
+          "email": "trentm@gmail.com",
+          "time": "2011-03-23T04:48:40.000Z",
+          "timeOffset": -420
+        },
+        "parents": [
+          "b72fee60f3c25e70d349567578f01011c450b5a5"
+        ],
+        "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
+      },
+      "repository": {
+        "name": "markdown2",
+        "url": "git@github.com:trentm/python-markdown2.git",
+        "isCloned": true,
+        "isFetchPending": false
+      }
+    }
+
+
+
+# Configuration
+
+A Molybdenum server (node app.js) always loads a default config (at
+INSTALLDIR/default-config/molybdenum.json) and optionally a given
+configuration JSON file passed in via the `-c|--config PATH` command-line
+switch or via the `MOLYBDENUM_CONFIG` envvar.
+
+||**name**||**type**||**description**||
+||name||string||Name of this instance. Used in the UI. Default "Molybdenum".||
+|| ||
+||protocol||string||"http" or "https". Default "http".||
+||host||string||Host IP on which to listen. Default "127.0.0.1".||
+||port||string||Port on which to listen. Default "3333".||
+||httpRedirect||string||Optionally set 'httpRedirect' to a URL to which to redirect any requests to http port 80. This will only run when the primary server is configured to run on https port 443. The idea is to provide a nice redirect from, say, "http://mo.example.com/*" to "https://mo.example.com/" for the first time user not having to explicitly remember the "https://" prefix in their browser.||
+|| ||
+||dataDir||string||Dir in which to store all repo data. Relative path to the current working dir.||
+||pidFile||string||Optional. Can be set to create a PID file. Path is relative to the cwd when started.||
+|| ||
+||adminName||string||Administrator name used in admin error emails. Also see `authAdminName` below. Default "Your Molybdenum Administrator".||
+||adminEmail||string||Optional. Administrator email address to use for admin error emails.||
+|| ||
+||authMethod||string||One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.||
+||authPublicAnonymousUser||object||JSON to be return as the fallback user for all auth'd endpoints. Default is `{"login": "guest"}`. If this setting is empty or not given, Molybdenum will attempt to get user info from the "X-Authorized-User" header (e.g. set by upstream proxy, expected to be JSON).||
+||authStaticFile||string||Path (relative to this config file) to JSON file that looks like: `[{"login": "guest", "password": "guest", "uuid": "4159832a-a5cd-1848-93cd-3cd89fa97000"}, ...]`||
+||authSdccapiClientUrl||string||||
+||authSdccapiHttpAdminUser||string||||
+||authSdccapiHttpAdminPassword||string||||
+||authAuthorizedUsers||array||An list of authenticated users to which to allow access. Each "user" can be a username/login string or a uuid. If not specified or empty then all authenticated users are allowed access.||
+|| ||
+||navLinks||array||List of links to place in the top-right Molybdenum nav bar. Each array element is `{"name": <link name>, "href": <link url>}`. E.g.: `{"name": "Bugs", "href": "https://issues.example.com"}`.||
+||searchForm||object||You can add a search form to the top-right navbar of Molybdenum pages. E.g. `{"name": "OpenGrok", "href": "/source", "q": "q", "hidden": {"project": "{{searchFormRepo}}"}}`. "name" (required) is placeholder text. "href" (required) is the URL at which to search. "q" is the query param name for the search (i.e. the search text field name). "hidden" is a list of hidden form fields: e.g. `[{"name": "project", "value": "{{searchFormRepo}}"}]` The hidden "value" can be the special "{{searchFormRepo}}" template var which evaluates to the name of the repo for the current page (e.g. "eol" on the "/eol/tree/master" page).||
+|| ||
+||postFetchHooks||array||Array of post-fetch hooks. These are either a hook name (for built-in hooks that ship with Molybdenum) or the full path to a separately installed post-fetch hook. For example: `["jira", "/home/mo/hooks/my-custom-post-fetch-hook"]`. See 'Post-Fetch Hooks' below.||
+
+# Post-Fetch Hooks
+
+Molybdenum supports a list of hooks to run for each repo fetch (see
+"postFetchHooks" config var above.) These are either a built-in hook that
+ship with Molybdenum) or the full path to a separately installed post-fetch
+hook.
+
+The built-in hooks are all at "tools/${NAME}-post-fetch-hook".
+
+Each post-fetch hook is called for each branch/revision-range fetched
+whenever a repo is updated. They are called with the same signature as
+a regular git post-receive hook:
+
+    .../foo-post-fetch-hook OLDREV NEWREV REFNAME
+
+with the addition that the "MOLYBDENUM_CONFIG" and "CONFIG" envvars are
+set to the full path to the Molybdenum ini config file. This allows a
+post-fetch script to get configuration info. For example:
+
+    CONFIG=/home/mo/config/molybdenum.ini \
+        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.ini \
+        /home/mo/hooks/my-custom-post-fetch-hook ea8d8c5 8d83628 refs/heads/master
+
+By convention a post-fetch hook needing config info should use a
+`${name}PostFetchHook` section in the JSON config file. E.g.:
+
+    {
+      ...
+      "postFetchHooks": "/home/mo/hooks/my-custom-post-fetch-hook",
+      "myCustomPostFetchHook": {
+        "foo": "bar",
+        ...
+      },
+      ...
+    }
+
+
+## Jira built-in post-fetch hook
+
+This is a post-fetch hook to add a comment describing a commit to a Jira
+ticket if that ticket id (e.g. "PROJECTA-42") is mentioned in the commit
+message.
+
+An example configuration block:
+
+    "jiraPostFetchHook": {
+        // Required fields.
+        "moUrl": "https://mo.example.com",
+        "jiraUrl": "https://jira.example.com",
+        "jiraCredentials": "BOTACCOUNT:BOTPASSWORD",
+        "jiraProjects": ["PROJECTA", "PROJECTB"],
+        // Optional fields.
+        "git": "/opt/local/bin/git",    // Default: `git` from PATH.
+        "admin": "Trent"                // Default: `adminName` from top-level config.
+    }

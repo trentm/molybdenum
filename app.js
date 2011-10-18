@@ -68,9 +68,7 @@ function createApp(opts, config) {
 
   var auth, basicAuthMiddleware, authPublicAnonymousUser;
   if (config.authMethod === "public") {
-    authPublicAnonymousUser = (config.authPublicAnonymousUser
-      ? JSON.parse(config.authPublicAnonymousUser)
-      : null);
+    authPublicAnonymousUser = config.authPublicAnonymousUser || null;
   } else {
     auth = createAuth(config);
     basicAuthMiddleware = express.basicAuth(function (username, password, cb) {
@@ -1351,7 +1349,59 @@ function fetchRepoTask(repo) {
         //TODO: include 'data' in error.
         log("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);
       }
-      worker.finish();
+      
+      // Handle any configured post-fetch hooks.
+      var postFetchHooks = Object.keys(config.postFetchHooks);
+      if (postFetchHooks.length > 0) {
+        // Parse the fetched branches and rev ranges from 'git fetch ...' output.
+        var fetches = [];
+        var fetchDetailsRe = /^ +([a-f0-9]{7})\.\.([a-f0-9]{7}) +\b(\S+)\b/;
+        //log("git fetch stderr: '%s'", stderr)
+        stderr.split('\n').forEach(function (line) {
+          var match = fetchDetailsRe.exec(line);
+          if (match) {
+            fetches.push({oldRev: match[1], newRev: match[2], branch: match[3]})
+          }
+        });
+        //log("fetches: %s", JSON.stringify(fetches))
+        
+        // Multiplex post-fetch hooks with the fetch ranges.
+        var postFetchCalls = [];
+        for (var i=0; i < postFetchHooks.length; i++) {
+          for (var j=0; j < fetches.length; j++) {
+            var hookPath = postFetchHooks[i];
+            if (hookPath.indexOf('/') === -1) {
+              hookPath = Path.join(__dirname, "tools", hookPath + "-post-fetch-hook");
+            }
+            postFetchCalls.push({hookPath: hookPath, fetch: fetches[j]});
+          }
+        }
+        //log("postFetchCalls: %s", JSON.stringify(postFetchCalls))
+
+        // Call each post-fetch hook.
+        // TODO: perhaps collect up all errors and email once to admin.
+        function _callPostFetchHook(postFetchCall, cb) {
+          var args = [postFetchCall.fetch.oldRev, postFetchCall.fetch.newRev,
+            "refs/heads/" + postFetchCall.fetch.branch];
+          hookExec(postFetchCall.hookPath, args, repo.dir,
+            function(err, stdout, stderr) {
+              log("Call post-fetch hook: %s %s (stdout='%s', stderr='%s', err='%s')",
+                postFetchCall.hookPath, args.join(' '), stdout, stderr, err)
+              cb(null);
+            }
+          );
+        }
+        
+        asyncForEach(postFetchCalls, _callPostFetchHook, function (err) {
+          if (err) {
+            log("error: Error running post fetch hook: %s", err)
+            //TODO: email admin about it
+          }
+          worker.finish();
+        });
+      } else {
+        worker.finish();
+      }
     });
   }
 }
@@ -1475,6 +1525,47 @@ function gitExec(args, gitDir, callback) {
 }
 
 
+function copyObject(obj){
+  var nobj = Object();
+  var keys = Object.keys(obj);
+  for (var i = 0; i < keys.length; i++){
+    nobj[keys[i]] = obj[keys[i]];
+  }
+  return nobj;
+}
+
+
+function hookExec(hookPath, args, cwd, callback) {
+  env = copyObject(process.env);
+  env.CONFIG = config.configPath;
+  env.MOLYBDENUM_CONFIG = config.configPath;
+  options = {
+    cwd: cwd,
+    env: env
+  }
+  var child = child_process.spawn(hookPath, args, options);
+  
+  var stdout = [], stderr = [];
+  child.stdout.setEncoding('binary');
+  child.stdout.addListener('data', function (text) {
+    stdout[stdout.length] = text;
+  });
+  child.stderr.addListener('data', function (text) {
+    stderr[stderr.length] = text;
+  });
+  child.addListener('exit', function (code) {
+    if (code > 0) {
+      log("hookExec error: exit code "+code+": hookPath " + args.join(" "));
+      var err = new Error(stderr.join(''));
+      callback(err, stdout.join(''), stderr.join(''));
+      return;
+    }
+    callback(null, stdout.join(''), stderr.join(''));
+  });
+  child.stdin.end();
+}
+
+
 /**
  * Syntax highlight with pygments.
  */
@@ -1572,7 +1663,7 @@ function mustache403Response(res, user) {
   ];
   mustacheResponse(res, "403.mustache", {
       user: user,
-      adminName: config.authAdminName,
+      adminName: config.authName,
       image: images[_mustache403ResponseImageIdx]
     }, 403, true);
   _mustache403ResponseImageIdx = (_mustache403ResponseImageIdx + 1) % images.length;
@@ -1819,11 +1910,7 @@ function deletePidFile(config) {
 
 function loadConfig(configPath) {
   var config;
-  
-  var pathVarsRelativeToConfigFile = ["authStaticFile", "sslKeyFile", 
-    "sslCertFile"];
-  var pathVarsRelativeToCwd = ["dataDir", "pidFile"];
-  
+
   // Resolve relative paths in vars.
   function resolveRelativePathVars(config, configDir) {
     pathVarsRelativeToConfigFile.forEach(function (name) {
@@ -1839,11 +1926,16 @@ function loadConfig(configPath) {
     });
   }
   
-  var defaultConfigPath = __dirname + '/default-config/molybdenum.ini';
-  log("Loading default config from '" + defaultConfigPath + "'.");
-  config = iniparser.parseSync(defaultConfigPath);
-  resolveRelativePathVars(config, Path.dirname(defaultConfigPath));
+  var pathVarsRelativeToConfigFile = ["authStaticFile", "sslKeyFile", 
+    "sslCertFile"];
+  var pathVarsRelativeToCwd = ["dataDir", "pidFile"];
   
+  var defaultConfigPath = __dirname + '/default-config/molybdenum.json';
+  log("Loading default config from '" + defaultConfigPath + "'.");
+  config = JSON.parse(fs.readFileSync(defaultConfigPath));
+  
+  resolveRelativePathVars(config, Path.dirname(defaultConfigPath));
+
   if (! configPath) {
     configPath = process.env.MOLYBDENUM_CONFIG;
   }
@@ -1853,15 +1945,18 @@ function loadConfig(configPath) {
       return 1;
     }
     log("Loading additional config from '" + configPath + "'.");
-    var extraConfig = iniparser.parseSync(configPath);
+    var extraConfig = JSON.parse(fs.readFileSync(configPath));
     for (var name in extraConfig) {
       config[name] = extraConfig[name];
     }
     resolveRelativePathVars(config, Path.dirname(configPath));
+    config.configPath = Path.resolve(configPath);
+  } else {
+    config.configPath = null;
   }
   
   // Resolve csv vars.
-  var csvVars = ["authAuthorizedUsers"];
+  var csvVars = ["authAuthorizedUsers", "postFetchHooks"];
   csvVars.forEach(function (name) {
     mapping = {};
     (config[name] || "").trim().split(/\s*,\s*/).forEach(function (item) {
@@ -1872,22 +1967,8 @@ function loadConfig(configPath) {
     });
     config[name] = mapping;
   });
-  //log(config)
 
-  // Resolve boolean vars.
-  var boolVars = [];
-  boolVars.forEach(function (name) {
-    if (!config[name] || config[name] === "false") {
-      config[name] = false;
-    } else if (config[name] === "true") {
-      config[name] = true;
-    } else {
-      throw new Error("error: illegal value for boolean '"+name
-        +"' config var: '"+config[name]
-        +"' (must be 'true' or 'false' or empty)");
-    }
-  });
-  
+  //log(config)
   return config;
 }
 
@@ -1909,9 +1990,9 @@ function internalMainline(argv) {
 
   // `config` is intentionally global.
   config = loadConfig(opts.configPath);
+  //log(config)
   assert.ok(Path.existsSync(config.dataDir),
     "Data dir '"+config.dataDir+"' does not exist.");
-  //log(config)
 
   // Setup
   var pidFile = createPidFile(config);
@@ -1926,33 +2007,13 @@ function internalMainline(argv) {
     name = name.slice(0, name.lastIndexOf('.'));
     templatePartials[name] = fs.readFileSync(path, 'utf-8');
   });
-  var navLinks = Object.keys(config.navLinks).map(
-    function(k) { return {name:k, href:config.navLinks[k]}; });
-  if (navLinks.length > 0) {
-    navLinks[0].first = true;
-  }
-  if (config.searchForm.hidden) {
-    config.searchForm.hidden = config.searchForm.hidden.split(',').map(
-      function(i) {
-        var idx = i.indexOf('=');
-        var name = i.slice(0, idx);
-        var value = i.slice(idx+1);
-        if (value[0] == '$') {
-          // Special searchForm template vars. See
-          // "default-config/molybdenum.ini"'s docs on "searchForm".
-          switch (value.slice(1)) {
-          case "repo":
-            value = "{{ searchFormRepo }}"
-            break;
-          }
-        }
-        return {name: name, value: value};
-      });
+  if (config.navLinks.length > 0) {
+    config.navLinks[0].first = true;
   }
   defaultView = {
     title: config.name,
     name: config.name,
-    navLinks: navLinks,
+    navLinks: config.navLinks,
     searchForm: config.searchForm
   };
 

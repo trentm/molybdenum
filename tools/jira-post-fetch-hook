@@ -6,7 +6,9 @@ each referenced ticket in the commit message (this for each commit in
 the push).
 
 Requirements:
-- Python >= 2.4 (not Python 3.x)
+- Python >= 2.6 (not Python 3.x). Currently the only Python 2.6 requirement
+  is the `json` module in the stdlib. Could easily allow Python 2.5 by
+  including and using simplejson.py <http://pypi.python.org/pypi/simplejson/>.
 """
 
 __version__ = "1.0.0"
@@ -15,39 +17,31 @@ import os
 import sys
 import xmlrpclib
 import re
+import json
+import codecs
 
 
 
-#---- config
-
-DRY_RUN = False
-GIT = "git"
-
-MO_URL = "https://mo.example.com"
-JIRA_URL = "https://jira.example.com/"
-JIRA_CREDENTIALS = "BOTUSER:BOTPASSWORD"
-JIRA_PROJECTS = """
-    PROJA PROJB
-    """.split()
-
-# The name (or whatever arbitrary string) used in post-receive output to
-# indicate who to talk to about a hook error.
-ADMIN = "your administrator"
-
+#---- globals & errors
 
 TEMPLATE = """
 {panel:borderColor=#ccc|borderStyle=solid|bgColor=#d3e1fe}
-*[%(repo)s commit %(sha)s|%(mo_url)s%(repo)s/commit/%(sha)s]* *(**[branch %(branch)s|%(mo_url)s/%(repo)s/commits/%(branch)s]**, by %(author)s)*
+*[%(repo)s commit %(sha)s|%(moUrl)s/%(repo)s/commit/%(sha)s]* *(**[branch %(branch)s|%(moUrl)s/%(repo)s/commits/%(branch)s]**, by %(author)s)*
 
 %(message)s
 {panel}
 """
 
+DRY_RUN = False
+GIT = "git"
+DEBUG = False  # set to True for more logging output.
 
-#---- globals & errors
 
 class Error(Exception):
     pass
+
+
+cfg = None   # object set in `main`.
 
 
 
@@ -60,9 +54,9 @@ def printError(errmsg):
         "*"
     ]
     lines += ["* "+s for s in errmsg.splitlines(False)]
-    if ADMIN:
+    if cfg and cfg["admin"]:
         lines.append("*")
-        lines.append("* Please report this full error message to: %s" % ADMIN)
+        lines.append("* Please report this full error message to: %s" % cfg["admin"])
     lines.append("* * *")
     print('\n'.join(lines))
 
@@ -71,6 +65,7 @@ def run(argv):
     Raise on non-zero retval.
     """
     from subprocess import Popen, PIPE
+    if DEBUG: print "Running command: %r" % argv
     p = Popen(argv, stdout=PIPE, stderr=PIPE, close_fds=True)
     p.wait()
     stdout = p.stdout.read()
@@ -92,23 +87,36 @@ def genCommits(startRev, endRev):
         sha, rest = commitStr.split(None, 1)
         author = rest.split('\n', 1)[0].split(': ', 1)[1].split('<', 1)[0].strip()
         meta, message = re.compile(r'^    ', re.M).split(rest, 1)
+        if DEBUG:
+            print "Found commit %s by %s: '%s...'" % (
+                sha, author, message[:20].replace('\n', ' '))
         yield {"sha": sha, "message": message, "author": author}
 
-_jiraIssueRe = re.compile(r"\b((%s)-(\d+))\b" % '|'.join(JIRA_PROJECTS))
 def genJiraIssues(commitInfo):
-    for match in _jiraIssueRe.finditer(commitInfo["message"]):
-        yield match.group(1)
+    jiraIssueRe = re.compile(r"\b((%s)-(\d+))\b"
+        % '|'.join(cfg["jiraProjects"]))
+    already = set()
+    for match in jiraIssueRe.finditer(commitInfo["message"]):
+        issue = match.group(1)
+        if issue not in already:
+            if DEBUG:
+                print "Found JIRA ref in commit %s: %s" % (
+                    commitInfo["sha"], issue)
+            yield issue
+            already.add(issue)
 
 _authTokenCache = None
 def getAuthToken(server):
     global _authTokenCache
     if _authTokenCache is None:
-        _authTokenCache = server.jira1.login(*JIRA_CREDENTIALS.split(':', 1))
+        _authTokenCache = server.jira1.login(
+            *cfg["jiraCredentials"].split(':', 1))
     return _authTokenCache
 
 
 
 #---- mainline
+
 
 def main(argv=sys.argv):
     print "Adding commit info to referenced Jira tickets."
@@ -117,16 +125,31 @@ def main(argv=sys.argv):
         raise Error("incorrect number of args: argv=%r" % argv)
     oldrev, newrev, refname = argv[1:]
 
+    global cfg
+    configPath = os.environ["MOLYBDENUM_CONFIG"]
+    if not os.path.exists(configPath):
+        raise Error("'%s' config file (from MOLYBDENUM_CONFIG envvar) "
+            "does not exist." % configPath)
+    fp = codecs.open(configPath, 'r', "utf-8")
+    try:
+        topLevel = json.load(fp)
+    finally:
+        fp.close()
+    cfg = topLevel["jiraPostFetchHook"]
+    cfg["admin"] = ("admin" in cfg and cfg["admin"]
+        or "adminName" in topLevel["adminName"]
+        or "Your Molybdenum Administrator")
+
     repo = os.path.basename(os.getcwd())
     if repo.endswith(".git"):
         repo = repo[:-len(".git")]
     branch = refname.split('/')[-1]
 
-    server = xmlrpclib.ServerProxy(JIRA_URL + "/rpc/xmlrpc")
+    server = xmlrpclib.ServerProxy(cfg["jiraUrl"] + "/rpc/xmlrpc")
     for commitInfo in genCommits(oldrev, newrev):
         sha = commitInfo["sha"][:7]
         data = {
-            "mo_url": MO_URL,
+            "moUrl": cfg["moUrl"],
             "repo": repo,
             "sha": sha,
             "author": commitInfo["author"],
@@ -134,7 +157,7 @@ def main(argv=sys.argv):
             "branch": branch
         }
         for jira in genJiraIssues(commitInfo):
-            print "\t> %s (commit %s)" % (jira, sha)
+            print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
             comment = TEMPLATE % data
             if not DRY_RUN:
                 authToken = getAuthToken(server)

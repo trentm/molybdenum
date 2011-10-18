@@ -20,6 +20,7 @@
     "underscore": "1.1",
     "redis": "0.6",
     "rimraf": "1.0",
+    "nodemailer": "0.2",
     "trentm-datetime": "0.0.3",
     "trentm-hashlib": "1.0.1"
   },

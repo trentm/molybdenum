@@ -24,18 +24,20 @@ endif
 
 REDIS_SERVER := deps/redis/src/redis-server
 NPM := npm_config_tar=$(TAR) npm
+RESTDOWN = deps/restdown/bin/restdown $(RESTDOWN_OPTS)
+
 
 
 #
 # Targets
 #
 
-.PHONY: all test run help docs deps optional_deps
+.PHONY: all test run help doc deps optional_deps
 
 help:
 	@echo "help: show this help"
 	@echo "all: build all (most dependencies)"
-	@echo "docs: rebuild the docs"
+	@echo "doc: rebuild the docs"
 	@echo "test: run the test suite"
 	@echo "run: run a local development Molybdenum"
 
@@ -75,19 +77,19 @@ tmp:
 	mkdir -p tmp
 
 run: tmp 
-	@if [ ! -f dev.ini ]; then \
-	    echo "error: 'dev.ini' does not exist."; \
-	    echo " - Create it: 'cp tools/dev.ini.in dev.ini'"; \
+	@if [ ! -f dev.json ]; then \
+	    echo "error: 'dev.json' does not exist."; \
+	    echo " - Create it: 'cp tools/dev.json.in dev.json'"; \
 	    echo " - Optionally tweak settings (e.g. auth)."; \
 	    echo " - Re-run 'make run'."; \
 	    exit 1; \
 	fi
-	tools/devrun.sh dev.ini
+	tools/devrun.sh dev.json
 redis-cli:
 	deps/redis/src/redis-cli -p 6401
 
 doc:
-	./tools/restdown -v -b tools/restdown-brand -m static/static docs/api.md
+	$(RESTDOWN) -m static/static ./docs/index.md
 
 test:
 	(cd test && $(MAKE) test)

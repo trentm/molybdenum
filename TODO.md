@@ -1,3 +1,14 @@
+# current
+
+- switch go JSON for config file for molybdenum :(
+  Python ConfigParser and nodejs iniparser are not compatible w.r.t to the
+  top-level section and blank lines.
+    - authAdminName fallback
+    - navLinks format change
+- add "adminName/Email" and mailing support
+- deprecate and remove authAdminName in favour of "adminName"
+
+
 # feature requests
 
 - josh: list of ocmmits (history)
