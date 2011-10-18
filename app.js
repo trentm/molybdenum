@@ -172,21 +172,25 @@ function createApp(opts, config) {
     app.use(authorizeUsersMiddleware);
   });
 
-
-  //-- API Routes.
-  app.get('/api', function(req, res) {
+  
+  //-- misc routes
+  
+  app.get('/docs', function(req, res) {
     var accept = req.header("Accept");
     if (accept && (accept.search("application/xhtml+xml") != -1
                    || accept.search("text/html") != -1)) {
-      mustacheResponse(res, "/../docs/api.html",
+      mustacheResponse(res, "/../docs/index.html",
         {url: "http://"+config.host+":"+config.port},
         null, false);
     } else {
       res.header("Content-Type", "application/json")
-      res.sendfile(__dirname + "/docs/api.json");
+      res.sendfile(__dirname + "/docs/index.json");
     }
   });
 
+
+  //-- API Routes.
+  
   app.get('/api/ping', function(req, res) {
     jsonResponse(res, {"ping": "pong"});
   });

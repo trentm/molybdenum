@@ -1,7 +1,9 @@
 ---
 title: Molybdenum
+brand: spartan
+mediaroot: /static/media
 markdown2extras: wiki-tables
-logo-color: pink
+logo-color: purple
 logo-font-family: google:Droid Sans, Verdana, sans-serif
 header-font-family: google:Droid Sans, Verdana, sans-serif
 ---
@@ -300,6 +302,7 @@ switch or via the `MOLYBDENUM_CONFIG` envvar.
 ||searchForm||object||You can add a search form to the top-right navbar of Molybdenum pages. E.g. `{"name": "OpenGrok", "href": "/source", "q": "q", "hidden": {"project": "{{searchFormRepo}}"}}`. "name" (required) is placeholder text. "href" (required) is the URL at which to search. "q" is the query param name for the search (i.e. the search text field name). "hidden" is a list of hidden form fields: e.g. `[{"name": "project", "value": "{{searchFormRepo}}"}]` The hidden "value" can be the special "{{searchFormRepo}}" template var which evaluates to the name of the repo for the current page (e.g. "eol" on the "/eol/tree/master" page).||
 || ||
 ||postFetchHooks||array||Array of post-fetch hooks. These are either a hook name (for built-in hooks that ship with Molybdenum) or the full path to a separately installed post-fetch hook. For example: `["jira", "/home/mo/hooks/my-custom-post-fetch-hook"]`. See 'Post-Fetch Hooks' below.||
+
 
 # Post-Fetch Hooks
 
