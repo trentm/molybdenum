@@ -1385,8 +1385,8 @@ function fetchRepoTask(repo) {
             "refs/heads/" + postFetchCall.fetch.branch];
           hookExec(postFetchCall.hookPath, args, repo.dir,
             function(err, stdout, stderr) {
-              log("Call post-fetch hook: %s %s (stdout='%s', stderr='%s', err='%s')",
-                postFetchCall.hookPath, args.join(' '), stdout, stderr, err)
+              log("Call post-fetch hook (repo.dir='%s'): %s %s (stdout='%s', stderr='%s', err='%s')",
+                repo.dir, postFetchCall.hookPath, args.join(' '), stdout, stderr, err)
               cb(null);
             }
           );

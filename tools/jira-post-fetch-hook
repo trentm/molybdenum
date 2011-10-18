@@ -20,6 +20,10 @@ import re
 import json
 import codecs
 
+# Ignore xmllib deprecation warning in xmlrpclib usage in Python 2.6.
+import warnings
+warnings.simplefilter("ignore")
+
 
 
 #---- globals & errors
@@ -54,7 +58,7 @@ def printError(errmsg):
         "*"
     ]
     lines += ["* "+s for s in errmsg.splitlines(False)]
-    if cfg and cfg["admin"]:
+    if cfg and "admin" in cfg:
         lines.append("*")
         lines.append("* Please report this full error message to: %s" % cfg["admin"])
     lines.append("* * *")
@@ -137,7 +141,7 @@ def main(argv=sys.argv):
         fp.close()
     cfg = topLevel["jiraPostFetchHook"]
     cfg["admin"] = ("admin" in cfg and cfg["admin"]
-        or "adminName" in topLevel["adminName"]
+        or "adminName" in topLevel and topLevel["adminName"]
         or "Your Molybdenum Administrator")
 
     repo = os.path.basename(os.getcwd())
