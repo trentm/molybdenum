@@ -348,9 +348,15 @@ switch or via the <code>MOLYBDENUM_CONFIG</code> envvar.</p>
 <tr><td>adminName</td><td>string</td><td>Administrator name used in admin error emails. Also see <code>authAdminName</code> below. Default "Your Molybdenum Administrator".</td></tr>
 <tr><td>adminEmail</td><td>string</td><td>Optional. Administrator email address to use for admin error emails.</td></tr>
 <tr><td></td></tr>
-<tr><td>authMethod</td><td>string</td><td>One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.</td></tr>
+<tr><td>authMethod</td><td>string</td><td>One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "ldap" (uses LDAP authentication), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.</td></tr>
 <tr><td>authPublicAnonymousUser</td><td>object</td><td>JSON to be return as the fallback user for all auth'd endpoints. Default is <code>{"login": "guest"}</code>. If this setting is empty or not given, Molybdenum will attempt to get user info from the "X-Authorized-User" header (e.g. set by upstream proxy, expected to be JSON).</td></tr>
 <tr><td>authStaticFile</td><td>string</td><td>Path (relative to this config file) to JSON file that looks like: <code>[{"login": "guest", "password": "guest", "uuid": "4159832a-a5cd-1848-93cd-3cd89fa97000"}, ...]</code></td></tr>
+<tr><td>authLdapUrl</td><td>string</td><td>The LDAP URL to which to bind. E.g. "ldaps://ldap.example.com:636". Note: LDAP over SSL is supported, but not TLS (see <a href="http://ldapjs.org/client.html">http://ldapjs.org/client.html</a>)</td></tr>
+<tr><td>authLdapAdminDn</td><td>string</td><td>The Admin DN.</td></tr>
+<tr><td>authLdapAdminPassword</td><td>string</td><td>The Admin DN's password.</td></tr>
+<tr><td>authLdapSearchBase</td><td>string</td><td>The base DN to search for users/accounts.</td></tr>
+<tr><td>authLdapSearchFilter</td><td>string</td><td>E.g. '(uid={{username}})'</td></tr>
+<tr><td>authLdapUsernameField</td><td>string</td><td>LDAP record field used for the username/login. Optional.</td></tr>
 <tr><td>authSdccapiClientUrl</td><td>string</td><td></td></tr>
 <tr><td>authSdccapiHttpAdminUser</td><td>string</td><td></td></tr>
 <tr><td>authSdccapiHttpAdminPassword</td><td>string</td><td></td></tr>

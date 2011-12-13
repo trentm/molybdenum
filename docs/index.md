@@ -290,9 +290,15 @@ switch or via the `MOLYBDENUM_CONFIG` envvar.
 ||adminName||string||Administrator name used in admin error emails. Also see `authAdminName` below. Default "Your Molybdenum Administrator".||
 ||adminEmail||string||Optional. Administrator email address to use for admin error emails.||
 || ||
-||authMethod||string||One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.||
+||authMethod||string||One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "ldap" (uses LDAP authentication), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.||
 ||authPublicAnonymousUser||object||JSON to be return as the fallback user for all auth'd endpoints. Default is `{"login": "guest"}`. If this setting is empty or not given, Molybdenum will attempt to get user info from the "X-Authorized-User" header (e.g. set by upstream proxy, expected to be JSON).||
 ||authStaticFile||string||Path (relative to this config file) to JSON file that looks like: `[{"login": "guest", "password": "guest", "uuid": "4159832a-a5cd-1848-93cd-3cd89fa97000"}, ...]`||
+||authLdapUrl||string||The LDAP URL to which to bind. E.g. "ldaps://ldap.example.com:636". Note: LDAP over SSL is supported, but not TLS (see <http://ldapjs.org/client.html>)||
+||authLdapAdminDn||string||The Admin DN.||
+||authLdapAdminPassword||string||The Admin DN's password.||
+||authLdapSearchBase||string||The base DN to search for users/accounts.||
+||authLdapSearchFilter||string||E.g. '(uid={{username}})'||
+||authLdapUsernameField||string||LDAP record field used for the username/login. Optional.||
 ||authSdccapiClientUrl||string||||
 ||authSdccapiHttpAdminUser||string||||
 ||authSdccapiHttpAdminPassword||string||||

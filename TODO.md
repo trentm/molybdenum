@@ -1,3 +1,8 @@
+# current
+
+- getting "https://mo.joyent.com/usb-headnode/blob/master/scripts/create-zone.sh#L21-NaN"
+  Lame! Something wrong there. This is in FF. Ah, FF-only failure!
+
 # feature requests
 
 - josh: list of ocmmits (history)
@@ -28,6 +33,7 @@
 - andres: headroom for real "#L<number>" anchors (via JS)
 
 # high prio
+
 
 - no cache headers on content. E.g. all images/css/js pulled everytime!
   Or is that just express dev mode?

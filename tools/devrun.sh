@@ -43,9 +43,9 @@ function cleanup {
 
 trap 'errexit $? $LINENO' EXIT
 
-HUB_INI_PATH=$1
-if [[ ! -f "$HUB_INI_PATH" ]]; then
-    fatal "Molybdenum ini path '${HUB_INI_PATH}' does not exist."
+CONFIG_PATH=$1
+if [[ ! -f "$CONFIG_PATH" ]]; then
+    fatal "Molybdenum ini path '${CONFIG_PATH}' does not exist."
 fi
 
 echo "== preclean"
@@ -57,7 +57,7 @@ ps -ef | grep node-de[v] | awk '{print $2}' | xargs kill
 #$ROOT/deps/redis/src/redis-server $ROOT/tools/redis.conf
 
 echo "== start molybdenum (tmp/molybdenum.log)"
-${NODE_DEV} $ROOT/app.js -c $HUB_INI_PATH > $ROOT/tmp/molybdenum.log 2>&1 &
+${NODE_DEV} $ROOT/app.js -c $CONFIG_PATH > $ROOT/tmp/molybdenum.log 2>&1 &
 sleep 1
 
 echo "== tail the logs ..."
