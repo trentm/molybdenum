@@ -120,10 +120,17 @@ def getAuthToken(server):
             *cfg["jiraCredentials"].split(':', 1))
     return _authTokenCache
 
+def jiraCommentEscape(s):
+    """Return a version of `s` with jira comment syntax escaped.
+    
+    Note: I haven't done an exhaustive search of jira comment syntax here,
+    just handling the cases I've seen in practice.
+    """
+    return s.replace('{', '\\{')
+
 
 
 #---- mainline
-
 
 def main(argv=sys.argv):
     print "Adding commit info to referenced Jira tickets."
@@ -160,7 +167,7 @@ def main(argv=sys.argv):
             "repo": repo,
             "sha": sha,
             "author": commitInfo["author"],
-            "message": commitInfo["message"].rstrip(),
+            "message": jiraCommentEscape(commitInfo["message"].rstrip()),
             "branch": branch
         }
         for jira in genJiraIssues(commitInfo):
