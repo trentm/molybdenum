@@ -389,7 +389,10 @@ table.code td {
   padding: 0;
   margin: 0;
   background-color: #f5f5f5;
-  vertical-align: middle;
+  vertical-align: top;
+}
+table.text td.text {
+  padding-top: 5px;
 }
 pre.linenums {
   margin: 0;
