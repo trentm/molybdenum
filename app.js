@@ -8,12 +8,10 @@
  *    node app.js
  */
 
-require.paths.unshift(__dirname + '/node_modules');
-
 var express = require('express');
 var iniparser = require('iniparser');
 var fs = require('fs');
-var sys = require('sys');
+var util = require('util');
 var Path = require('path');
 var child_process = require('child_process');
 var assert = require('assert');
@@ -1789,19 +1787,19 @@ function asyncForEach (list, fn, cb) {
 
 
 function printHelp() {
-  sys.puts("Usage: node app.js [OPTIONS]");
-  sys.puts("");
-  sys.puts("The molybdenum server: a git repo browser.");
-  sys.puts("");
-  sys.puts("Options:");
-  sys.puts("  -h, --help    print this help info and exit");
-  sys.puts("  --version     print version of this command and exit");
-  sys.puts("  -q, --quiet   only output errors and warnings");
-  sys.puts("  -c, --config-path PATH");
-  sys.puts("                Specify config file to load.");
-  sys.puts("");
-  sys.puts("Environment:");
-  sys.puts("  MOLYBDENUM_CONFIG    Path to config file to load.");
+  util.puts("Usage: node app.js [OPTIONS]");
+  util.puts("");
+  util.puts("The molybdenum server: a git repo browser.");
+  util.puts("");
+  util.puts("Options:");
+  util.puts("  -h, --help    print this help info and exit");
+  util.puts("  --version     print version of this command and exit");
+  util.puts("  -q, --quiet   only output errors and warnings");
+  util.puts("  -c, --config-path PATH");
+  util.puts("                Specify config file to load.");
+  util.puts("");
+  util.puts("Environment:");
+  util.puts("  MOLYBDENUM_CONFIG    Path to config file to load.");
 }
 
 
@@ -1988,7 +1986,7 @@ function internalMainline(argv) {
     return 0;
   }
   if (opts.version) {
-    sys.puts("molybdenum " + getVersion());
+    util.puts("molybdenum " + getVersion());
     return 0;
   }
 
