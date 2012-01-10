@@ -40,7 +40,7 @@ TEMPLATE = """
 {panel}
 """
 
-DRY_RUN = True
+DRY_RUN = False
 GIT = "git"
 DEBUG = False  # set to True for more logging output.
 
