@@ -156,6 +156,8 @@ def main(argv=sys.argv):
         or "Your Molybdenum Administrator")
     if DRY_RUN:
         cfg["dryRun"] = True
+    elif "dryRun" not in cfg:
+        cfg["dryRun"] = False
 
     repo = os.path.basename(os.getcwd())
     if repo.endswith(".git"):
