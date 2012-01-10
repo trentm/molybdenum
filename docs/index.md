@@ -362,6 +362,13 @@ An example configuration block:
         "jiraCredentials": "BOTACCOUNT:BOTPASSWORD",
         "jiraProjects": ["PROJECTA", "PROJECTB"],
         // Optional fields.
+        // If true, just go through motions without actually adding Jira comments.
+        "dryRun": true                  // Default: false.
         "git": "/opt/local/bin/git",    // Default: `git` from PATH.
         "admin": "Trent"                // Default: `adminName` from top-level config.
+        // A boolean that tells the hook to NOT process commits to branches
+        // that are named after a ticket. E.g. "PROJECTA-123". The idea here
+        // is that these are very likely short-lived feature brances that
+        // will be merged into a mainstream branch when complete.
+        "ignoreTicketBranches": true    // Default: false.
     }

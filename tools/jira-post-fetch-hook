@@ -9,9 +9,10 @@ Requirements:
 - Python >= 2.6 (not Python 3.x). Currently the only Python 2.6 requirement
   is the `json` module in the stdlib. Could easily allow Python 2.5 by
   including and using simplejson.py <http://pypi.python.org/pypi/simplejson/>.
+- See Molybdenum docs on this hook for configuration.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import os
 import sys
@@ -39,7 +40,7 @@ TEMPLATE = """
 {panel}
 """
 
-DRY_RUN = False
+DRY_RUN = True
 GIT = "git"
 DEBUG = False  # set to True for more logging output.
 
@@ -153,11 +154,20 @@ def main(argv=sys.argv):
     cfg["admin"] = ("admin" in cfg and cfg["admin"]
         or "adminName" in topLevel and topLevel["adminName"]
         or "Your Molybdenum Administrator")
+    if DRY_RUN:
+        cfg["dryRun"] = True
 
     repo = os.path.basename(os.getcwd())
     if repo.endswith(".git"):
         repo = repo[:-len(".git")]
     branch = refname.split('/')[-1]
+
+    if cfg.get("ignoreTicketBranches"):
+        jiraIssueRe = re.compile(r"^((%s)-(\d+))$"
+            % '|'.join(cfg["jiraProjects"]))
+        if jiraIssueRe.search(branch):
+            print "\t> Skip commit to ticket branch (%s)" % branch
+            return
 
     server = xmlrpclib.ServerProxy(cfg["jiraUrl"] + "/rpc/xmlrpc")
     for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
@@ -173,7 +183,7 @@ def main(argv=sys.argv):
         for jira in genJiraIssues(commitInfo):
             print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
             comment = TEMPLATE % data
-            if not DRY_RUN:
+            if not cfg["dryRun"]:
                 authToken = getAuthToken(server)
                 server.jira1.addComment(authToken, jira, comment)
 
