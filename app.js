@@ -1387,8 +1387,9 @@ function fetchRepoTask(repo) {
             "refs/heads/" + postFetchCall.fetch.branch];
           hookExec(postFetchCall.hookPath, args, repo.dir,
             function(err, stdout, stderr) {
-              log("Call post-fetch hook (repo.dir='%s'): %s %s (stdout='%s', stderr='%s', err='%s')",
-                repo.dir, postFetchCall.hookPath, args.join(' '), stdout, stderr, err)
+              log("Called post-fetch hook: `cd %s && CONFIG=%s MOLYBDENUM_CONFIG=%s %s %s` (stdout='%s', stderr='%s', err='%s')",
+                repo.dir, config.configPath, config.configPath,
+                postFetchCall.hookPath, args.join(' '), stdout, stderr, err)
               cb(null);
             }
           );
