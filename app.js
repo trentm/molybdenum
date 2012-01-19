@@ -1028,7 +1028,7 @@ db = (function() {
         gitRepo.tree(treeId, function(err, gitTree) {
           if (err) {
             return callback({
-              error: "error getting tree '"+treeId+'"',
+              error: "error getting tree '"+treeId+"'",
               details: err
             });
           }
