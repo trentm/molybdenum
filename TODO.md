@@ -1,8 +1,3 @@
-# current
-
-- getting "https://mo.joyent.com/usb-headnode/blob/master/scripts/create-zone.sh#L21-NaN"
-  Lame! Something wrong there. This is in FF. Ah, FF-only failure!
-
 # feature requests
 
 - josh: list of ocmmits (history)
@@ -30,7 +25,12 @@
   Featuritis danger here.
 - andres,trent: gist-like functionality
 - stu: a list of contained branches on a commit would be very nice
-- andres: headroom for real "#L<number>" anchors (via JS)
+- better molybdenum /api/repos/:repo/commits/:ref  API for John
+  Basically want to do equiv of `git log fa5ec06..HEAD` on a particular branch,
+  where "fa5ec06" is the SHA from a previous release so can get a list of
+  changes for this new release.
+  
+    https://github.com/trentm/restdown/compare/60cda26242ac...master
 
 # high prio
 
