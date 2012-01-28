@@ -304,7 +304,7 @@ switch or via the `MOLYBDENUM_CONFIG` envvar.
 ||authSdccapiHttpAdminPassword||string||||
 ||authAuthorizedUsers||array||An list of authenticated users to which to allow access. Each "user" can be a username/login string or a uuid. If not specified or empty then all authenticated users are allowed access.||
 || ||
-||navLinks||array||List of links to place in the top-right Molybdenum nav bar. Each array element is `{"name": <link name>, "href": <link url>}`. E.g.: `{"name": "Bugs", "href": "https://issues.example.com"}`.||
+||navLinks||array||List of links to place in the top-right Molybdenum nav bar. Each array element is `{"name": <link name>, "href": <link url>}`. E.g.: `{"name": "Bugs", "href": "https://issues.example.com"}`. You can use `{{navLinksRepo}}` in these values for the repo name on repo pages.||
 ||searchForm||object||You can add a search form to the top-right navbar of Molybdenum pages. E.g. `{"name": "OpenGrok", "href": "/source", "q": "q", "hidden": {"project": "{{searchFormRepo}}"}}`. "name" (required) is placeholder text. "href" (required) is the URL at which to search. "q" is the query param name for the search (i.e. the search text field name). "hidden" is a list of hidden form fields: e.g. `[{"name": "project", "value": "{{searchFormRepo}}"}]` The hidden "value" can be the special "{{searchFormRepo}}" template var which evaluates to the name of the repo for the current page (e.g. "eol" on the "/eol/tree/master" page).||
 || ||
 ||postFetchHooks||array||Array of post-fetch hooks. These are either a hook name (for built-in hooks that ship with Molybdenum) or the full path to a separately installed post-fetch hook. For example: `["jira", "/home/mo/hooks/my-custom-post-fetch-hook"]`. See 'Post-Fetch Hooks' below.||

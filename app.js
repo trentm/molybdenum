@@ -1700,6 +1700,7 @@ function mustacheResponse(res, templatePath, view, status /* =200 */,
   // Add view-specific vars for the possible 'searchForm'.
   if (view.repository) {
     view.searchFormRepo = view.repository.name;
+    view.navLinksRepo = view.repository.name;
   }
 
   //TODO: should cache this in production
