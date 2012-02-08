@@ -361,14 +361,31 @@ An example configuration block:
         "jiraUrl": "https://jira.example.com",
         "jiraCredentials": "BOTACCOUNT:BOTPASSWORD",
         "jiraProjects": ["PROJECTA", "PROJECTB"],
+
         // Optional fields.
+
         // If true, just go through motions without actually adding Jira comments.
         "dryRun": true                  // Default: false.
         "git": "/opt/local/bin/git",    // Default: `git` from PATH.
         "admin": "Trent"                // Default: `adminName` from top-level config.
+
+        // DEPRECATED. Will be removed. Use the whitelist/blacklist below.
+        //
         // A boolean that tells the hook to NOT process commits to branches
         // that are named after a ticket. E.g. "PROJECTA-123". The idea here
         // is that these are very likely short-lived feature brances that
         // will be merged into a mainstream branch when complete.
         "ignoreTicketBranches": true    // Default: false.
+        
+        // A whitelist/blacklist for controlling which branches this hook
+        // will ignore.
+        // - both empty: process all  (the default)
+        // - whitelist = ['*/master'], blacklist = []: only master branches
+        //   in all repos
+        // - whitelist = ['*/master', '*/release-*', 'public-web-client/jpc'],
+        //   blacklist = ['blarg/release-*']: all master branches, all
+        //   'release-*' branches except for 'blarg' repo, the 'jpc' branch
+        //   in the 'public-web-client' repo
+        "branchWhitelist": [],
+        "branchBlacklist": [],
     }

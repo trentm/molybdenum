@@ -20,6 +20,7 @@ import xmlrpclib
 import re
 import json
 import codecs
+from fnmatch import fnmatch
 
 # Ignore xmllib deprecation warning in xmlrpclib usage in Python 2.6.
 import warnings
@@ -164,12 +165,32 @@ def main(argv=sys.argv):
         repo = repo[:-len(".git")]
     branch = refname.split('/')[-1]
 
+    # DEPRECATED. Will be removed.
     if cfg.get("ignoreTicketBranches"):
         jiraIssueRe = re.compile(r"^((%s)-(\d+))$"
             % '|'.join(cfg["jiraProjects"]))
         if jiraIssueRe.search(branch):
             print "\t> Skip commit to ticket branch (%s)" % branch
             return
+
+    whitelist = cfg.get("branchWhitelist") or []
+    blacklist = cfg.get("branchBlacklist") or []
+    if whitelist or blacklist:
+        # Skip this branch or no?
+        checkPath = "%s/%s" % (repo, branch)
+        if whitelist:
+            for pat in whitelist:
+                if fnmatch(checkPath, pat):
+                    break
+            else:
+                print "\t> Skip repo/branch '%s' (doesn't match whitelist)" \
+                    % checkPath
+                return
+        for pat in blacklist:
+            if fnmatch(checkPath, pat):
+                print "\t> Skip repo/branch '%s' (matches blacklist '%s')" \
+                    % (checkPath, pat)
+                return
 
     server = xmlrpclib.ServerProxy(cfg["jiraUrl"] + "/rpc/xmlrpc")
     for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
