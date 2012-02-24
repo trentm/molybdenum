@@ -2011,7 +2011,7 @@ function internalMainline(argv) {
     name = name.slice(0, name.lastIndexOf('.'));
     templatePartials[name] = fs.readFileSync(path, 'utf-8');
   });
-  if (config.navLinks.length > 0) {
+  if (config.navLinks && config.navLinks.length > 0) {
     config.navLinks[0].first = true;
   }
   defaultView = {
