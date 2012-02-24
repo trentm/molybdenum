@@ -246,11 +246,11 @@ ul ul ul { list-style-type: circle; }
 }
 
 #logo {
-  font-size: 24px;
+  float: left;
 }
 
 #logo .title {
-  float: left;
+  font-size: 24px;
 }
 
 #nav {
