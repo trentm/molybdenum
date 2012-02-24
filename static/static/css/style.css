@@ -232,8 +232,9 @@ ul ul ul { list-style-type: circle; }
 
 #headernav {
   float: right;
-  margin-top: -24px;
+  margin-top: -23px;
 }
+
 #headernav span {
   margin-left: 6px;
 }
@@ -246,6 +247,10 @@ ul ul ul { list-style-type: circle; }
 
 #logo {
   font-size: 24px;
+}
+
+#logo .title {
+  float: left;
 }
 
 #nav {
