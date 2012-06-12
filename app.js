@@ -1354,6 +1354,7 @@ function fetchRepoTask(repo) {
       
       // Handle any configured post-fetch hooks.
       var postFetchHooks = Object.keys(config.postFetchHooks);
+      //log("postFetchHooks: %s", postFetchHooks)
       if (postFetchHooks.length > 0) {
         // Parse the fetched branches and rev ranges from 'git fetch ...' output.
         var fetches = [];
