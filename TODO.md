@@ -75,6 +75,14 @@
 - GET /:repo/commits?page=n
 - reserved top-level names: commit, help, api, static, more?
 - refactor stuff out of app.js!
+- back to 'spartan' restdown brand: need to fix the spartan TOC to not overflow
+  perhaps by just naming api endpoints. Then readd this:
+
+      brand: spartan
+      logo-color: purple
+      logo-font-family: google:Droid Sans, Verdana, sans-serif
+      header-font-family: google:Droid Sans, Verdana, sans-serif
+
 
 # nice to haves
 
