@@ -241,7 +241,21 @@ function createApp(opts, config) {
       repoUrl = data.repository.url;
     }
 
-    var repo = db.repoFromName[repoName] || db.addRepo(repoName, repoUrl);
+    var repo = db.repoFromName[repoName];
+    if (repo) {
+      // Ensure the repo URL matches up.
+      if (repo.url !== repoUrl) {
+        var msg = format("URL for posted '%s' repo "
+          + "update does not match: existing='%s', posted='%s'", repoName,
+          repo.url, repoUrl);
+        // Logging manually here because current mo logging sucks: statusCode
+        // in log is wrong and error response not logged.
+        console.warn(msg);
+        return jsonErrorResponse(res, msg, 409);
+      }
+    } else {
+      repo = db.addRepo(repoName, repoUrl);
+    }
     repo.fetch();
 
     jsonResponse(res, {repository: repo.getPublicObject()}, 200);
@@ -1241,6 +1255,45 @@ db = (function() {
 
 
 //---- internal support functions
+
+
+var format = util.format;
+if (!format) {
+  // From <https://github.com/joyent/node/blob/master/lib/util.js#L22>
+  // until this runs with node >=0.6.
+  var formatRegExp = /%[sdj%]/g;
+  format = function format(f) {
+    if (typeof f !== 'string') {
+      var objects = [];
+      for (var i = 0; i < arguments.length; i++) {
+        objects.push(inspect(arguments[i]));
+      }
+      return objects.join(' ');
+    }
+    var i = 1;
+    var args = arguments;
+    var len = args.length;
+    var str = String(f).replace(formatRegExp, function(x) {
+      if (i >= len) return x;
+      switch (x) {
+        case '%s': return String(args[i++]);
+        case '%d': return Number(args[i++]);
+        case '%j': return JSON.stringify(args[i++]);
+        case '%%': return '%';
+        default:
+          return x;
+      }
+    });
+    for (var x = args[i]; i < len; x = args[++i]) {
+      if (x === null || typeof x !== 'object') {
+        str += ' ' + x;
+      } else {
+        str += ' ' + inspect(x);
+      }
+    }
+    return str;
+  };
+}
 
 /**
  * Add a "text" field to the given mustache template view object
