@@ -1,8 +1,6 @@
 ---
 title: Molybdenum
-brand: spartan
-mediaroot: /static/media
-markdown2extras: wiki-tables
+markdown2extras: wiki-tables, code-friendly, cuddled-lists
 logo-color: purple
 logo-font-family: google:Droid Sans, Verdana, sans-serif
 header-font-family: google:Droid Sans, Verdana, sans-serif
@@ -90,27 +88,23 @@ you are reading).
     GET /:repo/raw/:ref/:path
     GET /:repo/commit/:id
     GET /:repo/commits/:ref
-    
+
 
 -->
 
 
-# General API
 
-## GET /api
+# HTML Endpoints
 
-Return this HTML documentation or a JSON representation of the API, depending
-on the request "Accept" header.
+TODO: document and name these
 
-#### example JSON response
 
-    {
-      "endpoints": [
-        ...
-      ], 
-      "version": "1.0.0"
-    }
-
+## GET /:repo
+## GET /:repo/tree/:ref/:path
+## GET /:repo/blob/:ref/:path
+## GET /:repo/raw/:ref/:path
+## GET /:repo/commit/:id
+## GET /:repo/commits/:ref
 
 
 
@@ -237,7 +231,7 @@ Return info on all current repositories in the molybdenum server.
 
 
 ## GET /api/commit/:id
-    
+
     {
       "commit": {
         "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
@@ -266,6 +260,25 @@ Return info on all current repositories in the molybdenum server.
         "isFetchPending": false
       }
     }
+
+
+# Miscellaneous API
+
+## GET /api
+
+Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.
+
+#### example JSON response
+
+    {
+      "endpoints": [
+        ...
+      ],
+      "version": "1.0.0"
+    }
+
+
 
 
 
@@ -376,7 +389,7 @@ An example configuration block:
         // is that these are very likely short-lived feature brances that
         // will be merged into a mainstream branch when complete.
         "ignoreTicketBranches": true    // Default: false.
-        
+
         // A whitelist/blacklist for controlling which branches this hook
         // will ignore.
         // - both empty: process all  (the default)

@@ -16,6 +16,10 @@ We're using this internally at Joyent.
 for others. I'm scratching a personal itch here, and a significant chunk of
 hacking and duct tape is involved. Also, this is significantly under-documented.**
 
+# License
+
+MIT
+
 
 # Overview
 

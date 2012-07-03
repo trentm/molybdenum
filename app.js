@@ -58,7 +58,7 @@ var defaultView;
 
 function createApp(opts, config) {
   //-- Authentication setup
-  
+
   var skipAuthPaths = {
     "/logout": true,
     "/api/ping": true
@@ -123,7 +123,7 @@ function createApp(opts, config) {
 
 
   //-- Configure app
-  
+
   var app;
   switch (config.protocol) {
   case "http":
@@ -170,25 +170,9 @@ function createApp(opts, config) {
     app.use(authorizeUsersMiddleware);
   });
 
-  
-  //-- misc routes
-  
-  app.get('/docs', function(req, res) {
-    var accept = req.header("Accept");
-    if (accept && (accept.search("application/xhtml+xml") != -1
-                   || accept.search("text/html") != -1)) {
-      mustacheResponse(res, "/../docs/index.html",
-        {url: "http://"+config.host+":"+config.port},
-        null, false);
-    } else {
-      res.header("Content-Type", "application/json")
-      res.sendfile(__dirname + "/docs/index.json");
-    }
-  });
-
 
   //-- API Routes.
-  
+
   app.get('/api/ping', function(req, res) {
     jsonResponse(res, {"ping": "pong"});
   });
@@ -292,7 +276,7 @@ function createApp(opts, config) {
       })
     }
   });
-  
+
   //TODO:XXX document this
   // GET /api/repos/:repo/commits/:branch
   app.get('/api/repos/:repo/commits/:branch', function(req, res) {
@@ -629,7 +613,7 @@ function createApp(opts, config) {
         //X-Hub-Blob-Mode:100644
         //X-Hub-Blob-Sha:bdc7eb25c02b6fbdb092181aec37464a925e0de0
         //X-Hub-Blob-Size:1288
-        //X-Hub-Blob-Type:image/gif        
+        //X-Hub-Blob-Type:image/gif
 
         var llUtf8 = looksLikeUtf8(blobOrTree.blob.data);
         if (mode === "raw") {
@@ -666,8 +650,8 @@ function createApp(opts, config) {
       });
     });
   });
-  
-  
+
+
   // GET /:repo/commits
   app.get('/:repo/commits', function(req, res) {
     res.redirect("/" + req.params.repo + "/commits/master");
@@ -717,7 +701,7 @@ function createApp(opts, config) {
           isCurr: t===currTag
         }
       });
-    
+
       // Paging
       var perPage = 40;
       var page = (Number(req.query.page) ? parseInt(req.query.page) : 1);
@@ -728,7 +712,7 @@ function createApp(opts, config) {
       view.page = page;
       view.prevPage = (page - 1) || null;
       view.nextPage = page + 1;
-      
+
       moRepo.commits(ref, perPage+1, offset, function(err, moCommits) {
         if (err) {
           return mustache500Response(res,
@@ -809,7 +793,7 @@ function createApp(opts, config) {
           isCurr: t===currTag
         }
       });
-    
+
       moRepo.commit(id, function(err, moCommit) {
         if (err) {
           return mustache500Response(res,
@@ -1033,10 +1017,10 @@ db = (function() {
     this_.commit(ref, function(err, commit) {
       if (err) { return callback(err); }
       if (!commit) { return callback({error: "no such commit: "+ref}) }
-        
+
       var gitRepo = this._gitRepoCache;
       var pathParts = (path ? path.split('/') : []);
-      
+
       function resolvePathPart(treeId) {
         //log("-- resolvePathPart:", treeId, pathParts)
         gitRepo.tree(treeId, function(err, gitTree) {
@@ -1214,7 +1198,7 @@ db = (function() {
      *        callback(err, repo, commit)
      * If `err` is set, there was an internal error. Else if `commit`
      * is null, then the commit was not found. Else `commit` will be
-     * set. 
+     * set.
      *
      * Note that if there is an error with a particular repo, that
      * will NOT be reported. This is so that a single bad apple can't
@@ -1223,12 +1207,12 @@ db = (function() {
     lookupCommit: function lookupCommit(id, callback) {
       var theRepo = null;
       var theCommit = null;
-  
+
       //TODO: lookup in cache
-  
+
       function _lookupCommitInRepo(moRepo, cb) {
         moRepo.commit(id, function(err, moCommit) {
-          if (err) { 
+          if (err) {
             log("warning: error looking for commit in repo '%s' (%s): %s",
               moRepo.name, moRepo.dir, err);
           }
@@ -1387,7 +1371,7 @@ function viewCommitFromMoCommit(commit, repoName, brief /* =false */) {
       href: "/" + repoName + "/commit/" + c.id
     }
   }
-  
+
   return c;
 }
 
@@ -1404,7 +1388,7 @@ function fetchRepoTask(repo) {
         //TODO: include 'data' in error.
         log("error: Error fetching repository '"+repo.name+"' ("+repo.url+") in '"+repo.dir+"': "+err);
       }
-      
+
       // Handle any configured post-fetch hooks.
       var postFetchHooks = Object.keys(config.postFetchHooks);
       //log("postFetchHooks: %s", postFetchHooks)
@@ -1420,7 +1404,7 @@ function fetchRepoTask(repo) {
           }
         });
         //log("fetches: %s", JSON.stringify(fetches))
-        
+
         // Multiplex post-fetch hooks with the fetch ranges.
         var postFetchCalls = [];
         for (var i=0; i < postFetchHooks.length; i++) {
@@ -1448,7 +1432,7 @@ function fetchRepoTask(repo) {
             }
           );
         }
-        
+
         asyncForEach(postFetchCalls, _callPostFetchHook, function (err) {
           if (err) {
             log("error: Error running post fetch hook: %s", err)
@@ -1601,7 +1585,7 @@ function hookExec(hookPath, args, cwd, callback) {
     env: env
   }
   var child = child_process.spawn(hookPath, args, options);
-  
+
   var stdout = [], stderr = [];
   child.stdout.setEncoding('binary');
   child.stdout.addListener('data', function (text) {
@@ -1983,15 +1967,15 @@ function loadConfig(configPath) {
       }
     });
   }
-  
-  var pathVarsRelativeToConfigFile = ["authStaticFile", "sslKeyFile", 
+
+  var pathVarsRelativeToConfigFile = ["authStaticFile", "sslKeyFile",
     "sslCertFile"];
   var pathVarsRelativeToCwd = ["dataDir", "pidFile"];
-  
+
   var defaultConfigPath = __dirname + '/default-config/molybdenum.json';
   log("Loading default config from '" + defaultConfigPath + "'.");
   config = JSON.parse(fs.readFileSync(defaultConfigPath));
-  
+
   resolveRelativePathVars(config, Path.dirname(defaultConfigPath));
 
   if (! configPath) {
@@ -2012,7 +1996,7 @@ function loadConfig(configPath) {
   } else {
     config.configPath = null;
   }
-  
+
   // Resolve csv vars.
   var csvVars = ["authAuthorizedUsers", "postFetchHooks"];
   csvVars.forEach(function (name) {
@@ -2094,7 +2078,7 @@ function internalMainline(argv) {
         res.setHeader("Location", config.httpRedirect);
         res.end();
       }).listen(80, config.host);
-      log("Http -> <%s> redirect server listening in <http://%s>.", 
+      log("Http -> <%s> redirect server listening in <http://%s>.",
         config.httpRedirect, config.host);
     }
   }
