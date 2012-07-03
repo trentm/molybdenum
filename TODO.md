@@ -67,7 +67,7 @@
 
 # medium prio
 
-- 'POST /api/repos' should bail if the url doesn't match existing
+- JEG `make check`
 - redis caching of commit ids:  commit/$id (might be shortcut) = $reponame/$sha1
 - button to add a repo on '/'
 - "POST /api/repos/:repo": Error if repo names don't match. Error if
