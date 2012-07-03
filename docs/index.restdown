@@ -6,7 +6,7 @@ markdown2extras: wiki-tables, code-friendly, cuddled-lists
 # Molybdenum
 
 A github tree viewer when your repo isn't on Github (or even if it is).
-This project lives [here on GitHub](https://github.com/trentm/molydenum).
+This project lives [here on GitHub](https://github.com/trentm/molybdenum).
 
 ![molybdenum screenshot](media/img/screenshot.png)
 
