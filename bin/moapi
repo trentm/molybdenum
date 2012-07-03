@@ -21,7 +21,7 @@ fi
 path=$1
 if [[ -z "$path" ]]; then
     echo "error: no PATH argument given"
-    echo "Usage: hapi [-v] PATH [EXTRA-CURL-ARGS]"
+    echo "Usage: moapi [-v] PATH [EXTRA-CURL-ARGS]"
     exit 1
 fi
 shift;
