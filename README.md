@@ -2,7 +2,7 @@
 
 A github tree viewer when your repo isn't on Github (or even if it is).
 
-![molybdenum screenshot](media/img/screenshot.png)
+![molybdenum screenshot](https://github.com/trentm/molybdenum/raw/master/docs/media/img/screenshot.png)
 
 This is a node.js server that provides a web-browsable view of your git
 repos. Basically, you setup post-receive hooks for notifying Molybdenum
