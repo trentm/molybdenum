@@ -7,5 +7,6 @@
 /node_modules
 /npm-debug.log
 /dev.json
-/deps/node-sdc-clients
 /build
+/docs/index.html
+/docs/index.json
