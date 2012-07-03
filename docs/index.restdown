@@ -8,7 +8,7 @@ header-font-family: google:Droid Sans, Verdana, sans-serif
 
 # Molybdenum
 
-A github tree viewer when you're repo isn't on Github (or even if it is).
+A github tree viewer when your repo isn't on Github (or even if it is).
 This project lives [here on GitHub](https://github.com/trentm/molydenum).
 
 This is a node.js server that provides a web-browsable view of your git

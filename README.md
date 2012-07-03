@@ -1,6 +1,6 @@
 # Molybdenum
 
-A github tree viewer when you're repo isn't on Github (or even if it is).
+A github tree viewer when your repo isn't on Github (or even if it is).
 
 This is a node.js server that provides a web-browsable view of your git
 repos. Basically, you setup post-receive hooks for notifying Molybdenum
