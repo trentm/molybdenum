@@ -2,6 +2,8 @@
 
 A github tree viewer when your repo isn't on Github (or even if it is).
 
+![molybdenum screenshot](media/img/screenshot.png)
+
 This is a node.js server that provides a web-browsable view of your git
 repos. Basically, you setup post-receive hooks for notifying Molybdenum
 of your repo pushes and that's it.
@@ -10,11 +12,12 @@ Currently basic repo browsing (somewhat Github-esque) is supported and
 integration with Jira for adding ticket comments for pushes referencing
 Jira tickets.
 
-We're using this internally at Joyent. 
+We're using this internally at Joyent.
 
 **WARNING: Unfortunately, right *now* I don't have bandwidth to support this well
 for others. I'm scratching a personal itch here, and a significant chunk of
 hacking and duct tape is involved. Also, this is significantly under-documented.**
+
 
 # License
 
@@ -100,8 +103,3 @@ By convention a post-fetch hook needing config info should use a
 This is a post-fetch hook to add a comment describing a commit to a Jira
 ticket if that ticket id (e.g. "PROJECTA-42") is mentioned in the commit
 message.
-
-
-
-
-

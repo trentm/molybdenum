@@ -30,7 +30,7 @@ node_modules/express:
 	$(NPM) install
 
 .PHONY: devrun
-devrun:  
+devrun:
 	mkdir -p tmp
 	@if [ ! -f dev.json ]; then \
 	    echo "error: 'dev.json' does not exist."; \

@@ -8,6 +8,8 @@ markdown2extras: wiki-tables, code-friendly, cuddled-lists
 A github tree viewer when your repo isn't on Github (or even if it is).
 This project lives [here on GitHub](https://github.com/trentm/molydenum).
 
+![molybdenum screenshot](media/img/screenshot.png)
+
 This is a node.js server that provides a web-browsable view of your git
 repos and a JSON REST API. Basically, you setup post-receive hooks for
 notifying Molybdenum of your repo pushes and that's it.
