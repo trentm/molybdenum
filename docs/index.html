@@ -362,7 +362,7 @@ switch or via the <code>MOLYBDENUM_CONFIG</code> envvar.</p>
 <tr><td>authSdccapiHttpAdminPassword</td><td>string</td><td></td></tr>
 <tr><td>authAuthorizedUsers</td><td>array</td><td>An list of authenticated users to which to allow access. Each "user" can be a username/login string or a uuid. If not specified or empty then all authenticated users are allowed access.</td></tr>
 <tr><td></td></tr>
-<tr><td>navLinks</td><td>array</td><td>List of links to place in the top-right Molybdenum nav bar. Each array element is <code>{"name": &lt;link name&gt;, "href": &lt;link url&gt;}</code>. E.g.: <code>{"name": "Bugs", "href": "https://issues.example.com"}</code>.</td></tr>
+<tr><td>navLinks</td><td>array</td><td>List of links to place in the top-right Molybdenum nav bar. Each array element is <code>{"name": &lt;link name&gt;, "href": &lt;link url&gt;}</code>. E.g.: <code>{"name": "Bugs", "href": "https://issues.example.com"}</code>. You can use <code>{{navLinksRepo}}</code> in these values for the repo name on repo pages.</td></tr>
 <tr><td>searchForm</td><td>object</td><td>You can add a search form to the top-right navbar of Molybdenum pages. E.g. <code>{"name": "OpenGrok", "href": "/source", "q": "q", "hidden": {"project": "{{searchFormRepo}}"}}</code>. "name" (required) is placeholder text. "href" (required) is the URL at which to search. "q" is the query param name for the search (i.e. the search text field name). "hidden" is a list of hidden form fields: e.g. <code>[{"name": "project", "value": "{{searchFormRepo}}"}]</code> The hidden "value" can be the special "{{searchFormRepo}}" template var which evaluates to the name of the repo for the current page (e.g. "eol" on the "/eol/tree/master" page).</td></tr>
 <tr><td></td></tr>
 <tr><td>postFetchHooks</td><td>array</td><td>Array of post-fetch hooks. These are either a hook name (for built-in hooks that ship with Molybdenum) or the full path to a separately installed post-fetch hook. For example: <code>["jira", "/home/mo/hooks/my-custom-post-fetch-hook"]</code>. See 'Post-Fetch Hooks' below.</td></tr>
@@ -422,9 +422,33 @@ message.</p>
     "jiraUrl": "https://jira.example.com",
     "jiraCredentials": "BOTACCOUNT:BOTPASSWORD",
     "jiraProjects": ["PROJECTA", "PROJECTB"],
+
     // Optional fields.
+
+    // If true, just go through motions without actually adding Jira comments.
+    "dryRun": true                  // Default: false.
     "git": "/opt/local/bin/git",    // Default: `git` from PATH.
     "admin": "Trent"                // Default: `adminName` from top-level config.
+
+    // DEPRECATED. Will be removed. Use the whitelist/blacklist below.
+    //
+    // A boolean that tells the hook to NOT process commits to branches
+    // that are named after a ticket. E.g. "PROJECTA-123". The idea here
+    // is that these are very likely short-lived feature brances that
+    // will be merged into a mainstream branch when complete.
+    "ignoreTicketBranches": true    // Default: false.
+
+    // A whitelist/blacklist for controlling which branches this hook
+    // will ignore.
+    // - both empty: process all  (the default)
+    // - whitelist = ['*/master'], blacklist = []: only master branches
+    //   in all repos
+    // - whitelist = ['*/master', '*/release-*', 'public-web-client/jpc'],
+    //   blacklist = ['blarg/release-*']: all master branches, all
+    //   'release-*' branches except for 'blarg' repo, the 'jpc' branch
+    //   in the 'public-web-client' repo
+    "branchWhitelist": [],
+    "branchBlacklist": [],
 }
 </code></pre>
 

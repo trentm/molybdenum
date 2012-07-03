@@ -6,8 +6,20 @@ This is a node.js server that provides a web-browsable view of your git
 repos. Basically, you setup post-receive hooks for notifying Molybdenum
 of your repo pushes and that's it.
 
-Currently basic repo browsing (somewhat Github-esque) is supported.
-Hopefully more features to come.
+Currently basic repo browsing (somewhat Github-esque) is supported and
+integration with Jira for adding ticket comments for pushes referencing
+Jira tickets.
+
+We're using this internally at Joyent. 
+
+**WARNING: Unfortunately, right *now* I don't have bandwidth to support this well
+for others. I'm scratching a personal itch here, and a significant chunk of
+hacking and duct tape is involved. Also, this is significantly under-documented.**
+
+
+# Overview
+
+TODO
 
 
 # post-receive hook
@@ -56,19 +68,27 @@ a regular git post-receive hook:
 
     .../foo-post-fetch-hook OLDREV NEWREV REFNAME
 
-with the addition that the "MOLYBDENUM_CONFIG" and "CONFIG" envvars are
-set to the full path to the Molybdenum ini config file. This allows a
+with the addition that the "MOLYBDENUM\_CONFIG" and "CONFIG" envvars are
+set to the full path to the Molybdenum json config file. This allows a
 post-fetch script to get configuration info. For example:
 
-    CONFIG=/home/mo/config/molybdenum.ini \
-        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.ini \
+    CONFIG=/home/mo/config/molybdenum.json \
+        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.json \
         /home/mo/hooks/my-custom-post-fetch-hook ea8d8c5 8d83628 refs/heads/master
 
 By convention a post-fetch hook needing config info should use a
-"[${name}PostFetchHook]" section in the ini file. E.g.:
+"${name}PostFetchHook" key in the json config file, E.g.:
 
-    [myCustomPostFetchHook]
-    foo=bar
+    ...
+    "jiraPostFetchHook": {
+        "moUrl": "https://mo.example.com",
+        "jiraUrl": "https://jira.example.com/jira",
+        "jiraCredentials": "somebody:somepassword",
+        "jiraProjects": ["FOO", "BAR", "BAZ"],
+        "branchWhitelist": ["*/master", "*/release-*", "special-repo/important-branch"],
+        "branchBlacklist": []
+    }
+    ...
 
 
 ## Jira built-in post-fetch hook
