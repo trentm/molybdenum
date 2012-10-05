@@ -420,9 +420,11 @@ function createApp(opts, config) {
       return;
     }
 
-    //TODO: How to determine default branch? look at
-    //  github.com/libgit2/libgit2 (different default branch)
-    var defaultBranch = 'master';
+    //TODO: This should be async, but hacking in getting the default
+    //      branch.
+    var HEAD = fs.readFileSync(Path.join(moRepo.dir, "HEAD"), 'utf8');
+    var defaultBranch = HEAD.trim().split('/').pop()
+
     var ref = req.params[2];
     var path = pathFromRouteParam(req.params[3]);
     if (path === '' && ref === defaultBranch) {
