@@ -883,7 +883,8 @@ db = (function() {
       name: this.name,
       url: this.url,
       isCloned: this.isCloned,
-      isFetchPending: this.isFetchPending
+      isFetchPending: this.isFetchPending,
+      numActiveFetches: this.numActiveFetches
     };
   }
 
@@ -1099,6 +1100,8 @@ db = (function() {
   Repository.prototype.fetch = function fetch() {
     if (! this.isCloned) {
       // Wait until clone is complete before fetching.
+      this.isFetchPending = true;
+    } else if (this.numActiveFetches > 0) {
       this.isFetchPending = true;
     } else {
       this.isFetchPending = false;
