@@ -101,9 +101,9 @@ def genCommits(startRev, endRev):
                 sha, author, message[:20].replace('\n', ' '))
         yield {"sha": sha, "message": message, "author": author}
 
-def genJiraIssues(commitInfo):
+def genJiraIssues(commitInfo, jiraCfg):
     jiraIssueRe = re.compile(r"\b((%s)-(\d+))\b"
-        % '|'.join(cfg["jiraProjects"]))
+        % '|'.join(jiraCfg["jiraProjects"]))
     already = set()
     for match in jiraIssueRe.finditer(commitInfo["message"]):
         issue = match.group(1)
@@ -115,16 +115,16 @@ def genJiraIssues(commitInfo):
             already.add(issue)
 
 _authTokenCache = None
-def getAuthToken(server):
+def getAuthToken(server, jiraCfg):
     global _authTokenCache
     if _authTokenCache is None:
         _authTokenCache = server.jira1.login(
-            *cfg["jiraCredentials"].split(':', 1))
+            *jiraCfg["jiraCredentials"].split(':', 1))
     return _authTokenCache
 
 def jiraCommentEscape(s):
     """Return a version of `s` with jira comment syntax escaped.
-    
+
     Note: I haven't done an exhaustive search of jira comment syntax here,
     just handling the cases I've seen in practice.
     """
@@ -165,52 +165,45 @@ def main(argv=sys.argv):
         repo = repo[:-len(".git")]
     branch = refname.split('/')[-1]
 
-    # DEPRECATED. Will be removed.
-    if cfg.get("ignoreTicketBranches"):
-        jiraIssueRe = re.compile(r"^((%s)-(\d+))$"
-            % '|'.join(cfg["jiraProjects"]))
-        if jiraIssueRe.search(branch):
-            print "\t> Skip commit to ticket branch (%s)" % branch
-            return
-
-    whitelist = cfg.get("branchWhitelist") or []
-    blacklist = cfg.get("branchBlacklist") or []
-    if whitelist or blacklist:
-        # Skip this branch or no?
-        checkPath = "%s/%s" % (repo, branch)
-        if whitelist:
-            for pat in whitelist:
+    for jiraCfg in cfg.get("jiras", []):
+        whitelist = jiraCfg.get("branchWhitelist") or []
+        blacklist = jiraCfg.get("branchBlacklist") or []
+        if whitelist or blacklist:
+            # Skip this branch or no?
+            checkPath = "%s/%s" % (repo, branch)
+            if whitelist:
+                for pat in whitelist:
+                    if fnmatch(checkPath, pat):
+                        break
+                else:
+                    print "\t> Skip repo/branch '%s' (doesn't match whitelist)" \
+                        % checkPath
+                    return
+            for pat in blacklist:
                 if fnmatch(checkPath, pat):
-                    break
-            else:
-                print "\t> Skip repo/branch '%s' (doesn't match whitelist)" \
-                    % checkPath
-                return
-        for pat in blacklist:
-            if fnmatch(checkPath, pat):
-                print "\t> Skip repo/branch '%s' (matches blacklist '%s')" \
-                    % (checkPath, pat)
-                return
+                    print "\t> Skip repo/branch '%s' (matches blacklist '%s')" \
+                        % (checkPath, pat)
+                    return
 
-    server = xmlrpclib.ServerProxy(cfg["jiraUrl"] + "/rpc/xmlrpc")
-    for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
-        sha = commitInfo["sha"][:7]
-        data = {
-            "moUrl": cfg["moUrl"],
-            "repo": repo,
-            "sha": sha,
-            "author": commitInfo["author"],
-            "message": jiraCommentEscape(commitInfo["message"].rstrip()),
-            "branch": branch
-        }
-        for jira in genJiraIssues(commitInfo):
-            print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
-            comment = TEMPLATE % data
-            if not cfg["dryRun"]:
-                authToken = getAuthToken(server)
-                server.jira1.addComment(authToken, jira, comment)
+        server = xmlrpclib.ServerProxy(jiraCfg["jiraUrl"] + "/rpc/xmlrpc")
+        for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
+            sha = commitInfo["sha"][:7]
+            data = {
+                "moUrl": jiraCfg["moUrl"],
+                "repo": repo,
+                "sha": sha,
+                "author": commitInfo["author"],
+                "message": jiraCommentEscape(commitInfo["message"].rstrip()),
+                "branch": branch
+            }
+            for jira in genJiraIssues(commitInfo, jiraCfg):
+                print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
+                comment = TEMPLATE % data
+                if not cfg["dryRun"]:
+                    authToken = getAuthToken(server, jiraCfg)
+                    server.jira1.addComment(authToken, jira, comment)
 
-    #TODO: add a guard if too many?
+        #TODO: add a guard if too many?
 
 
 if __name__ == "__main__":
