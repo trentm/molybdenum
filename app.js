@@ -1368,6 +1368,7 @@ function viewCommitFromMoCommit(commit, repoName, brief /* =false */) {
   c.links = links.join('\n');
 
   c.author.timeAgo = datetime.formatAgo(c.author.time);
+  c.author.timeIso = c.author.time.toISOString();
 
   if (brief) {
     var line1 = c.message.split('\n', 1)[0]
