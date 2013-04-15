@@ -1324,7 +1324,8 @@ function viewAddForTextbox(view, fieldName, text, filename, callback) {
     if (err) {
       callback(err)
     } else {
-      obj.html = html;
+      // Make sure that mustache-like syntax in 'html' doesn't get rendered.
+      obj.html = html.replace(/{/g, '&#123;').replace(/}/g, '&#125;');
       callback(null)
     }
   });
