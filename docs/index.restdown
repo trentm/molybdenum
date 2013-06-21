@@ -1,329 +1,134 @@
 ---
-title: Molybdenum
+title: Molybdenum (Mo)
 markdown2extras: wiki-tables, code-friendly, cuddled-lists
 ---
 
-# Molybdenum
+# Molybdenum (Mo)
 
-A github tree viewer when your repo isn't on Github (or even if it is).
-This project lives [here on GitHub](https://github.com/trentm/molybdenum).
+**This is Mo v2. A re-write of molybdenum.**
 
-![molybdenum screenshot](media/img/screenshot.png)
+Molybdenum (of "Mo" for short) is a git repo browser written in node.js.
+Basically you setup post-receive hooks in your central git repos that
+post to the Mo api (the GH hooks post format is supported). Mo will then pull
+the latest changes -- i.e. it needs access to the repos. The URL structure
+is much like github's, though without the username level.
 
-This is a node.js server that provides a web-browsable view of your git
-repos and a JSON REST API. Basically, you setup post-receive hooks for
-notifying Molybdenum of your repo pushes and that's it.
+Mo has an API as well that might be useful for tooling that needs some info
+about a set of related repositories for a project.
 
-Currently basic repo browsing (somewhat Github-esque) is supported and
-integration with Jira for adding ticket comments for pushes referencing
-Jira tickets.
+Generally Mo isn't a useful upgrade to GitHub, but can be useful if you
+have private git repos that are not in GitHub -- e.g. your own Gitolite or
+Gitosis setup.
 
-We're using this internally at Joyent.
 
-**WARNING: Unfortunately, right *now* I don't have bandwidth to support this well
-for others. I'm scratching a personal itch here, and a significant chunk of
-hacking and duct tape is involved. Also, this is significantly under-documented.**
+# Mo Objects
 
+TODO: explain the object model
 
-# HTML Endpoints
 
-TODO: document and name these
+# API Summary
 
+||**Name**||**Endpoint**||**Notes**||
+||[ListRepos](#ListRepos)||GET /api/repos||List available repositories.||
+||[Ping](#Ping)||GET /api/ping||Ping if the server is up.||
 
-## GET /:repo
-## GET /:repo/tree/:ref/:path
-## GET /:repo/blob/:ref/:path
-## GET /:repo/raw/:ref/:path
-## GET /:repo/commit/:id
-## GET /:repo/commits/:ref
 
+# API Errors
 
+||**Code**||**HTTP status code**||**Description**||
+||InternalError||500||A general fallback for some error.||
 
-# Repository API
+TODO: error
 
-## GET /api/repos
+# API
 
-List all repositories currently in the molybdenum server.
+## ListRepos (GET /api/repos)
 
-#### example request
+TODO: describe ListRepos
 
-    $ curl {{ url }}/api/repos
+### Inputs
 
-#### example response
+||**Field**||**Type**||**Description**||
+||XXX||UUID||Only list images visible to this account. A user can only see: (a) active public images, (b) active private images for which they are listing in the ACL, and (c) their own images.||
 
-    {
-      "repositories": [
-        {
-          "name": "eol",
-          "url": "https://github.com/trentm/eol.git",
-          "dir": "/data/molybdenum/repos/eol.git",
-          // Note: The following are internal. Will probably be removed.
-          "isCloned": true,
-          "isFetchPending": false,
-          "numActiveFetches": 0,
-          ...
-        }
-      ]
-    }
+TODO: inputs
 
+### Returns
 
-## POST /api/repos
+TODO
 
-Let the server know about a new push to a repo. The request body must be a JSON
-object of the following form (compatible with the Github URL post-receive
-hook JSON format <http://help.github.com/post-receive-hooks/>):
+### Errors
 
-    {
-      "repository": {
-        "url": $git_clone_url,
-        "name": $name
-      }
-    }
+See [API Errors](#api-errors) section above.
 
+### Example
 
-#### example request
+TODO: example
 
-    $ echo '{
-        "repository": {
-            "url": "git@code.example.com:cool-product.git",
-            "name": "cool-product"
-        }
-    }' | curl {{ url }}/api/repos -X POST -H "Content-Type: application/json" -d @-
 
-#### successful response
+## Ping (GET /ping)
 
-    ...
-    Status: 200
+TODO: update desc
 
-    {
-      "repository": {
-        "name": "cool-product",
-        "url": "git@code.example.com:cool-product.git",
-        "isCloned": false,
-        "isFetchPending": true
-      }
-    }
+A simple ping to check to health of the Mo server. Here "pid" is the PID
+of the server process. This is helpful for the test suite.
 
+### Inputs
 
+||**Field**||**Type**||**Description**||
+||error||String||Optional. An error code name, e.g. "ResourceNotFound" to simulate an error response.||
+||message||String||Optional. The error message to include in the simulated error response. Defaults to "pong".||
 
-## GET /api/repos/:repo
+### Returns
 
-Return info on all current repositories in the molybdenum server.
+TODO: ping responses
 
-#### example request
+When not simulating an error response, a "pong" object is returned:
 
-    $ curl {{ url }}/api/repos/eol
+||**Field**||**Type**||**Description**||
+||ping||String||"pong"||
+||pid||String||The PID of Molybdenum server process (useful for testing).||
+||version||String||The version of the Molybdenum server.||
+||molybdenum||Boolean||true||
 
-#### example response
+When simulating an error, the HTTP response code depends on the error type
+and the response body is an JSON object with:
 
-    {
-      "repository": {
-        "name": "eol",
-        "url": "https://github.com/trentm/eol.git",
-        "dir": "/data/molybdenum/repos/eol.git",
-        ...
-      }
-    }
+||**Field**||**Type**||**Description**||
+||code||String||A restify error code, e.g. "ResourceNotFound", "InternalError". ||
+||message||String||Error message.||
 
-#### failure response
+### Examples
 
-    ...
-    Status: 404
-
-    {
-      "error": {
-        "message": "no such repo: 'asdf'",
-        "code": 404
-      }
-    }
-
-
-## DELETE /api/repos/:repo
-
-
-## GET /api/repos/:repo/commits/:branch
-
-### options
-
-||limit||Integer||
-||offset||Integer||
-
-## GET /api/repos/:repo/commit/:commitish-or-ref
-
-
-
-## GET /api/repos/:repo/refs
-
-
-## GET /api/repos/:repo/refs/:ref[/:path]
-
-
-## GET /api/commit/:id
-
-    {
-      "commit": {
-        "id": "50c3c7295d473e42adaf14f4e6f12df5c18a6e01",
-        "message": "slight adding to Tim's test case for html5 block tags\n",
-        "author": {
-          "name": "Trent Mick",
-          "email": "trentm@gmail.com",
-          "time": "2011-03-23T04:48:40.000Z",
-          "timeOffset": -420
-        },
-        "committer": {
-          "name": "Trent Mick",
-          "email": "trentm@gmail.com",
-          "time": "2011-03-23T04:48:40.000Z",
-          "timeOffset": -420
-        },
-        "parents": [
-          "b72fee60f3c25e70d349567578f01011c450b5a5"
-        ],
-        "tree": "16c95e7f8d2006871c34d9e8e716b4d0048eb165"
-      },
-      "repository": {
-        "name": "markdown2",
-        "url": "git@github.com:trentm/python-markdown2.git",
-        "isCloned": true,
-        "isFetchPending": false
-      }
-    }
-
-
-# Miscellaneous API
-
-## GET /api
-
-Return this HTML documentation or a JSON representation of the API, depending
-on the request "Accept" header.
-
-#### example JSON response
-
-    {
-      "endpoints": [
-        ...
-      ],
-      "version": "1.0.0"
-    }
-
-
+TODO: Example
 
 
 
 # Configuration
 
-A Molybdenum server (node app.js) always loads a default config (at
-INSTALLDIR/default-config/molybdenum.json) and optionally a given
-configuration JSON file passed in via the `-c|--config PATH` command-line
-switch or via the `MOLYBDENUM_CONFIG` envvar.
 
-||**name**||**type**||**description**||
-||name||string||Name of this instance. Used in the UI. Default "Molybdenum".||
-|| ||
-||protocol||string||"http" or "https". Default "http".||
-||host||string||Host IP on which to listen. Default "127.0.0.1".||
-||port||string||Port on which to listen. Default "3333".||
-||httpRedirect||string||Optionally set 'httpRedirect' to a URL to which to redirect any requests to http port 80. This will only run when the primary server is configured to run on https port 443. The idea is to provide a nice redirect from, say, "http://mo.example.com/*" to "https://mo.example.com/" for the first time user not having to explicitly remember the "https://" prefix in their browser.||
-|| ||
-||dataDir||string||Dir in which to store all repo data. Relative path to the current working dir.||
-||pidFile||string||Optional. Can be set to create a PID file. Path is relative to the cwd when started.||
-|| ||
-||adminName||string||Administrator name used in admin error emails. Also see `authAdminName` below. Default "Your Molybdenum Administrator".||
-||adminEmail||string||Optional. Administrator email address to use for admin error emails.||
-|| ||
-||authMethod||string||One of "public" (everything is public, no authentication is done), "static" (uses static JSON describing all user credentials, should only use this for testing), "ldap" (uses LDAP authentication), "sdccapi" (uses a Joyent SmartDataCenter CAPI). See related "auth${Name}*" variables for each method.||
-||authPublicAnonymousUser||object||JSON to be return as the fallback user for all auth'd endpoints. Default is `{"login": "guest"}`. If this setting is empty or not given, Molybdenum will attempt to get user info from the "X-Authorized-User" header (e.g. set by upstream proxy, expected to be JSON).||
-||authStaticFile||string||Path (relative to this config file) to JSON file that looks like: `[{"login": "guest", "password": "guest", "uuid": "4159832a-a5cd-1848-93cd-3cd89fa97000"}, ...]`||
-||authLdapUrl||string||The LDAP URL to which to bind. E.g. "ldaps://ldap.example.com:636". Note: LDAP over SSL is supported, but not TLS (see <http://ldapjs.org/client.html>)||
-||authLdapAdminDn||string||The Admin DN.||
-||authLdapAdminPassword||string||The Admin DN's password.||
-||authLdapSearchBase||string||The base DN to search for users/accounts.||
-||authLdapSearchFilter||string||E.g. '(uid={{username}})'||
-||authLdapUsernameField||string||LDAP record field used for the username/login. Optional.||
-||authSdccapiClientUrl||string||||
-||authSdccapiHttpAdminUser||string||||
-||authSdccapiHttpAdminPassword||string||||
-||authAuthorizedUsers||array||An list of authenticated users to which to allow access. Each "user" can be a username/login string or a uuid. If not specified or empty then all authenticated users are allowed access.||
-|| ||
-||navLinks||array||List of links to place in the top-right Molybdenum nav bar. Each array element is `{"name": <link name>, "href": <link url>}`. E.g.: `{"name": "Bugs", "href": "https://issues.example.com"}`. You can use `{{navLinksRepo}}` in these values for the repo name on repo pages.||
-||searchForm||object||You can add a search form to the top-right navbar of Molybdenum pages. E.g. `{"name": "OpenGrok", "href": "/source", "q": "q", "hidden": {"project": "{{searchFormRepo}}"}}`. "name" (required) is placeholder text. "href" (required) is the URL at which to search. "q" is the query param name for the search (i.e. the search text field name). "hidden" is a list of hidden form fields: e.g. `[{"name": "project", "value": "{{searchFormRepo}}"}]` The hidden "value" can be the special "{{searchFormRepo}}" template var which evaluates to the name of the repo for the current page (e.g. "eol" on the "/eol/tree/master" page).||
-|| ||
-||postFetchHooks||array||Array of post-fetch hooks. These are either a hook name (for built-in hooks that ship with Molybdenum) or the full path to a separately installed post-fetch hook. For example: `["jira", "/home/mo/hooks/my-custom-post-fetch-hook"]`. See 'Post-Fetch Hooks' below.||
+Reference docs on configuration vars to molybdenum. Default values are in
+"etc/defaults.json". Custom values are provided in a JSON file passed in with
+the "-f CFG-FILE" command-line option. Note that given custom values override
+full top-level keys in the factory settings. For example: if providing
+'auth', one must provide the whole 'auth' object.
+
+TODO: update vars, support some of these
+
+||**var**||**type**||**default**||**description**||
+||port||Number||8080||Port number on which to listen.||
+||hostname||String||0.0.0.0||Hostname on which to listen.||
+||serverName||String||IMGAPI/$version||Name of the HTTP server. This value is present on every HTTP response in the 'server' header.||
+||logLevel||String or Number||debug||Level at which to log. One of the supported Bunyan log levels. This is overridden by the `-d|--debug` switch.||
+||maxSockets||Number||100||Maximum number of sockets for external API calls||
+||auth||Object||-||Auth details.||
+||auth.type||String||none||One of 'none' or 'basic' (HTTP Basic Auth).||
+||auth.user||String||anonymous||Optional. Only used for 'none' auth. Username to assign to `req.remoteUser`.||
+||auth.users||Object||-||Required if `auth.type === 'basic'`. A mapping of username to bcrypt-hashed password. Use the `tools/hash-basic-auth-password` tool to create the hash.||
+||auth.realm||String||-||Realm used for basic auth challenge. Defaults to `serverName` value.||
 
 
-# Post-Fetch Hooks
+# Operator Guide
 
-Molybdenum supports a list of hooks to run for each repo fetch (see
-"postFetchHooks" config var above.) These are either a built-in hook -- i.e.
-that ships with Molybdenum -- or the full path to a separately installed
-post-fetch hook script. The built-in hooks are all at
-"tools/${NAME}-post-fetch-hook".
+TODO
 
-Each post-fetch hook is called for each branch/revision-range fetched
-whenever a repo is updated. They are called with the same signature as
-a regular git post-receive hook:
-
-    .../foo-post-fetch-hook OLDREV NEWREV REFNAME
-
-with the addition that the "MOLYBDENUM_CONFIG" and "CONFIG" envvars are
-set to the full path to the Molybdenum ini config file. This allows a
-post-fetch script to get configuration info. For example:
-
-    CONFIG=/home/mo/config/molybdenum.ini \
-        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.ini \
-        /home/mo/hooks/my-custom-post-fetch-hook ea8d8c5 8d83628 refs/heads/master
-
-By convention a post-fetch hook needing config info should use a
-`${name}PostFetchHook` section in the JSON config file. E.g.:
-
-    {
-      ...
-      "postFetchHooks": "/home/mo/hooks/my-custom-post-fetch-hook",
-      "myCustomPostFetchHook": {
-        "foo": "bar",
-        ...
-      },
-      ...
-    }
-
-
-## Jira built-in post-fetch hook
-
-This is a post-fetch hook to add a comment describing a commit to a Jira
-ticket if that ticket id (e.g. "PROJECTA-42") is mentioned in the commit
-message.
-
-An example configuration block:
-
-    "jiraPostFetchHook": {
-        // If true, just go through motions without actually adding Jira comments.
-        "dryRun": true                  // Default: false.
-        "git": "/opt/local/bin/git",    // Default: `git` from PATH.
-        "admin": "Trent"                // Default: `adminName` from top-level config.
-
-        "jiras": [
-            // One for each Jira instance to which to integrate.
-            {
-                // Required fields.
-                "moUrl": "https://mo.example.com",
-                "jiraUrl": "https://jira.example.com",
-                "jiraCredentials": "BOTACCOUNT:BOTPASSWORD",
-                "jiraProjects": ["PROJECTA", "PROJECTB"],
-
-                // Optional fields.
-
-                // A whitelist/blacklist for controlling which branches this hook
-                // will ignore.
-                // - both empty: process all  (the default)
-                // - whitelist = ['*/master'], blacklist = []: only master branches
-                //   in all repos
-                // - whitelist = ['*/master', '*/release-*', 'public-web-client/jpc'],
-                //   blacklist = ['blarg/release-*']: all master branches, all
-                //   'release-*' branches except for 'blarg' repo, the 'jpc' branch
-                //   in the 'public-web-client' repo
-                "branchWhitelist": [],
-                "branchBlacklist": [],
-            },
-            ...
-        ]
-    }

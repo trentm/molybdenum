@@ -1,12 +1,10 @@
 *.pyc
 *.egg-info
 /tmp
-.cache
-/data
 /test/tmp
 /node_modules
 /npm-debug.log
-/dev.json
 /build
 /docs/index.html
 /docs/index.json
+/etc/molybdenumd.config.json

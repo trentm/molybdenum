@@ -1,41 +1,36 @@
 {
-  "name": "molybdenum",
-  "description": "a source browser for your git repos",
-  "version": "0.1.0",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:trentm/molybdenum.git"
-  },
-  "private": true,
-  "contributors": [
-    "Trent Mick <trentm@gmail.com>"
-  ],
-  "dependencies": {
-    "base64": "2.0",
-    "chain-gang": "1.0",
-    "trentm-git": "0.1.3",
-    "express": "2.3.3",
-    "mime": "1.2",
-    "underscore": "1.1",
-    "redis": "0.6",
-    "rimraf": "1.0",
-    "nodemailer": "0.2",
-    "ldapauth": "1.0",
-    "log4js": "0.3",
-    "trentm-datetime": "0.0.3",
-    "trentm-hashlib": "1.0.1"
-  },
-  "hackedDependencies": {
-    "mustache": "0.3.1-dev plus https://github.com/janl/mustache.js/issues/48 whitespace fix"
-  },
-  "scripts": {
-    "start": "node ./app.js"
-  },
-  "devDependencies": {
-    "nodeunit": "0.5",
-    "jshint": "0.1.9",
-    "request": "1.9",
-    "node-dev": "*"
-  }
+    "name": "molybdenum",
+    "description": "a source browser for your git repos",
+    "version": "2.0.0",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:trentm/mo2.git"
+    },
+    "private": true,
+    "contributors": [
+        "Trent Mick <trentm@gmail.com>"
+    ],
+    "dependencies": {
+        "restify": "2.5.0",
+        "once": "1.1.1",
+        "async": "*",
+        "assert-plux": "*",
+        "dashdash": "*",
+        "redis": "0.8.2",
+        "rimraf": "*",
+        "mkdirp": "*",
+        "bunyan": "*",
+        "swig": "0.13.5"
+    },
+    "optionalDependencies": {
+        "bcrypt": "0.7.3"
+    },
+    "devDependencies": {
+        "nodeunit": "0.8.0",
+        "jshint": "0.1.9",
+        "node-dev": "*"
+    },
+    "scripts": {
+        "start": "node ./bin/molybdenumd.js"
+    }
 }
-

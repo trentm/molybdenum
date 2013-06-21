@@ -1,0 +1,7 @@
+{
+    "dataDir": "/var/tmp/mo2/data",
+    "database": {
+        "type": "flat-files",
+        "dir": "/var/tmp/mo2/db"
+    }
+}

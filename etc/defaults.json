@@ -1,0 +1,12 @@
+{
+    "port": 8123,
+    "hostname": "0.0.0.0",
+    "auth": {
+        "type": "none"
+    },
+    "dataDir": "/var/db/mo2/data",
+    "database": {
+        "type": "flat-files",
+        "dir": "/var/db/mo2/db"
+    }
+}
