@@ -142,22 +142,15 @@ Mo.prototype.do_ping.help = (
 
 if (require.main === module) {
     var cli = new Mo();
-    cli.main(process.argv, function (err) {
-        //if (err) {
-        //    console.error('%s%s: error%s: %s',
-        //        cli.name,
-        //        (err.subcmd ? ' ' + err.subcmd : ''),
-        //        (false && err.code ? format(' (%s)', err.code) : ''),
-        //        (process.env.DEBUG ? err.stack : err.message));
-        //    process.exit(err.exitStatus || 1);
-        //}
+    cli.main(process.argv, function (err, subcmd) {
         if (err) {
-            var subcmd = err.subcmd ? ' ' + err.subcmd : '';
+            var subcmdStr = subcmd ? ' ' + subcmd : '';
             if (err.body && err.body.code) {
-                console.error('%s%s: error (%s): %s', NAME, subcmd,
+                console.error('%s%s: error (%s): %s', cli.name, subcmdStr,
                     err.body.code, err.message);
             } else {
-                console.error('%s%s: error: %s', NAME, subcmd, err.message);
+                console.error('%s%s: error: %s', cli.name, subcmdStr,
+                    err.message);
             }
             if (cli.opts.verbose && err.stack) {
                 console.error('\n' + err.stack);
