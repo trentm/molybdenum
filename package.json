@@ -4,17 +4,17 @@
     "version": "2.0.0",
     "repository": {
         "type": "git",
-        "url": "git@github.com:trentm/mo2.git"
+        "url": "git@github.com:trentm/molybdenum.git"
     },
-    "private": true,
     "contributors": [
         "Trent Mick <trentm@gmail.com>"
     ],
+    "main": "./lib/index.js",
     "dependencies": {
         "restify": "2.5.0",
         "once": "1.1.1",
         "async": "*",
-        "assert-plux": "*",
+        "assert-plus": "*",
         "dashdash": "*",
         "redis": "0.8.2",
         "rimraf": "*",

@@ -26,6 +26,20 @@ Gitosis setup.
 TODO: explain the object model
 
 
+# Mo Client
+
+There is a node.js client included with the molybdenum repo. Basic usage:
+
+    var molybdenum = require('molybdenum');
+    var url = 'http://localhost:8123';
+    var client = molybdenum.createClient({url: url});
+    client.ping(function (err, pong, res) {
+        console.log(JSON.stringify(pong, null, 4));
+    });
+
+For now, read "lib/client.js" for full usage details.
+
+
 # API Summary
 
 ||**Name**||**Endpoint**||**Notes**||
@@ -68,8 +82,6 @@ TODO: example
 
 ## Ping (GET /ping)
 
-TODO: update desc
-
 A simple ping to check to health of the Mo server. Here "pid" is the PID
 of the server process. This is helpful for the test suite.
 
@@ -100,12 +112,44 @@ and the response body is an JSON object with:
 
 ### Examples
 
-TODO: Example
+    $ curl -i localhost:8123/ping
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 80
+    Date: Sat, 22 Jun 2013 00:25:21 GMT
+    Server: Molybdenum/2.0.0
+    x-request-id: 3940edc0-dad2-11e2-9b63-db1bdec2c39d
+    x-response-time: 1
+    x-server-name: grape.local
+    Connection: keep-alive
+
+    {
+      "ping": "pong",
+      "version": "2.0.0",
+      "molybdenum": true,
+      "pid": 27010
+    }
+
+Simulating an error response:
+
+    $ curl -i localhost:8123/ping?error
+    HTTP/1.1 500 Internal Server Error
+    Content-Type: application/json
+    Content-Length: 50
+    Date: Sat, 22 Jun 2013 00:26:06 GMT
+    Server: Molybdenum/2.0.0
+    x-request-id: 53e52650-dad2-11e2-9b63-db1bdec2c39d
+    x-response-time: 1
+    x-server-name: grape.local
+    Connection: keep-alive
+
+    {
+      "code": "InternalError",
+      "message": "boom"
+    }
 
 
-
-# Configuration
-
+# Server Configuration
 
 Reference docs on configuration vars to molybdenum. Default values are in
 "etc/defaults.json". Custom values are provided in a JSON file passed in with
@@ -113,19 +157,21 @@ the "-f CFG-FILE" command-line option. Note that given custom values override
 full top-level keys in the factory settings. For example: if providing
 'auth', one must provide the whole 'auth' object.
 
-TODO: update vars, support some of these
-
 ||**var**||**type**||**default**||**description**||
-||port||Number||8080||Port number on which to listen.||
+||port||Integer||8123||Port number on which to listen.||
 ||hostname||String||0.0.0.0||Hostname on which to listen.||
-||serverName||String||IMGAPI/$version||Name of the HTTP server. This value is present on every HTTP response in the 'server' header.||
+||serverName||String||Molybdenum/$version||Name of the HTTP server. This value is present on every HTTP response in the 'server' header.||
 ||logLevel||String or Number||debug||Level at which to log. One of the supported Bunyan log levels. This is overridden by the `-d|--debug` switch.||
-||maxSockets||Number||100||Maximum number of sockets for external API calls||
-||auth||Object||-||Auth details.||
+||maxSockets||Number||100||**TODO** Maximum number of sockets for external API calls||
+||auth||Object||-||**TODO** Auth details.||
 ||auth.type||String||none||One of 'none' or 'basic' (HTTP Basic Auth).||
 ||auth.user||String||anonymous||Optional. Only used for 'none' auth. Username to assign to `req.remoteUser`.||
 ||auth.users||Object||-||Required if `auth.type === 'basic'`. A mapping of username to bcrypt-hashed password. Use the `tools/hash-basic-auth-password` tool to create the hash.||
 ||auth.realm||String||-||Realm used for basic auth challenge. Defaults to `serverName` value.||
+||dataDir||String||/var/db/mo2/data||Path to a local dir for storing app data.||
+||database||Object||-||**TODO** Auth details.||
+||database.type||String||flat-files||Currently only 'flat-files' is supported. 'leveldb' is planned.||
+||database.dir||String||/var/db/mo2/db||Require for 'flat-files' database type. The dir in which to store db files.||
 
 
 # Operator Guide
