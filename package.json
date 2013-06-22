@@ -16,6 +16,7 @@
         "async": "*",
         "assert-plus": "*",
         "dashdash": "*",
+        "cmdln": "*",
         "redis": "0.8.2",
         "rimraf": "*",
         "mkdirp": "*",

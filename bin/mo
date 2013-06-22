@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+/*
+ * Copyright (c) 2013 Trent Mick. All rights reserved.
+ * Copyright (c) 2013 Joyent, Inc. All rights reserved.
+ *
+ * A Molybdenum client CLI.
+ */
+
+var p = console.log;
+var util = require('util');
+
+var assert = require('assert-plus');
+var async = require('async');
+var bunyan = require('bunyan');
+var cmdln = require('cmdln'),
+    Cmdln = cmdln.Cmdln;
+var restify = require('restify');
+
+var molybdenum = require('../lib/index');
+
+
+
+//---- globals
+
+var NAME = 'mo';
+var VERSION = require('../package.json').version;
+
+var log = bunyan.createLogger({
+    name: NAME,
+    serializers: restify.bunyan.serializers,
+    stream: process.stderr,
+    level: 'info'
+});
+
+
+
+//---- internal support functions
+
+function fatal(msg, code) {
+    assert.string(msg, 'msg');
+    assert.optionalNumber(code, 'code');
+    code = code === undefined ? 1 : code;
+    console.error(NAME + ': error: ' + message);
+    process.exit(code);
+}
+
+
+
+//---- Mo cmdln class.
+
+function Mo() {
+    Cmdln.call(this, {
+        name: NAME,
+        desc: 'A Molybdenum client tool',
+        // Custom options. By default you get -h/--help.
+        options: [
+            {names: ['help', 'h'], type: 'bool', help: 'Print help and exit.'},
+            {name: 'version', type: 'bool', help: 'Print version and exit.'},
+            {names: ['verbose', 'v'], type: 'bool', help: 'Verbose/debug output.'},
+            {
+                names: ['url', 'U'],
+                type: 'string',
+                // TODO: when ready
+                //env: 'MOLYBDENUM_URL',
+                env: 'MO2_URL',
+                help: 'Molybdenum server.',
+                helpArg: 'URL'
+            },
+        ],
+        helpOpts: {
+            includeEnv: true,
+            minHelpCol: 23 /* line up with option help */
+        }
+    });
+}
+util.inherits(Mo, Cmdln);
+
+// Custom `init` to handle custom options (i.e. 'version' defined above).
+Mo.prototype.init = function (opts, args, callback) {
+    if (opts.version) {
+        p(this.name, VERSION);
+        callback(false);
+        return;
+    }
+    this.opts = opts;
+    if (opts.verbose) {
+        log.level('trace');
+    }
+    // Cmdln class handles `opts.help`.
+    Cmdln.prototype.init.apply(this, arguments);
+};
+
+Mo.prototype.getClient = function () {
+    if (!this._client) {
+        var clientOpts = {
+            url: this.opts.url,
+            log: log.child({component: 'api'}, true)
+        };
+        this._client = molybdenum.createClient(clientOpts)
+    }
+    return this._client;
+};
+
+Mo.prototype.do_ping = function (subcmd, opts, args, callback) {
+    if (opts.help) {
+        this.do_help('help', {}, [subcmd], callback);
+        return;
+    }
+    this.getClient().ping(function (err, pong, res) {
+        if (err) return callback(err);
+        p(JSON.stringify(pong, null, 4));
+        callback();
+    });
+};
+Mo.prototype.do_ping.options = [
+    {
+        names: ['help', 'h'],
+        type: 'bool',
+        help: 'Show this help.'
+    }
+];
+Mo.prototype.do_ping.help = (
+    'Ping the molybdenum server.\n'
+    + '\n'
+    + 'Usage:\n'
+    + '     mo ping [<options>]\n'
+    + '\n'
+    + '{{options}}'
+);
+
+
+//---- mainline
+
+if (require.main === module) {
+    cmdln.main(Mo);
+}
+

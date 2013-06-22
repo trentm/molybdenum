@@ -8,9 +8,9 @@ JSL_CONF_NODE = tools/jsl.node.conf
 JSL_FILES_NODE = $(JS_FILES)
 JSSTYLE_FILES = $(JS_FILES)
 JSSTYLE_FLAGS = -o indent=4,doxygen,unparenthesized-return=0
+DOC_FILES = index.restdown
 BUNYAN = ./node_modules/.bin/bunyan
 NODEDEV = ./node_modules/.bin/node-dev
-
 
 include ./tools/mk/Makefile.defs
 
