@@ -131,6 +131,13 @@ function main() {
             log.src = true;
         }
     }
+    // Log config (but don't put passwords in the log file).
+    var censorKeys = {'password': '***', 'pass': '***'};
+    function censor(key, value) {
+        var censored = censorKeys[key];
+        return (censored === undefined ? value : censored);
+    }
+    log.info('config: %s', JSON.stringify(gConfig, censor, 2));
 
     // Start the app.
     async.series([

@@ -11,9 +11,7 @@
 
 # TODO
 
-- clean up docs, update current config info
-- log.info the config with imgapi/amon-master masking of passwords
-- commit to branch
+
 ...
 - full mo api
 - redis for caching, faster /commit/:sha redir

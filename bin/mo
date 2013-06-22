@@ -85,6 +85,7 @@ Mo.prototype.init = function (opts, args, callback) {
     this.opts = opts;
     if (opts.verbose) {
         log.level('trace');
+        log.src = true;
     }
     // Cmdln class handles `opts.help`.
     Cmdln.prototype.init.apply(this, arguments);
@@ -101,12 +102,14 @@ Mo.prototype.getClient = function () {
     return this._client;
 };
 
+
 Mo.prototype.do_ping = function (subcmd, opts, args, callback) {
     if (opts.help) {
         this.do_help('help', {}, [subcmd], callback);
         return;
     }
-    this.getClient().ping(function (err, pong, res) {
+    var error = opts.e ? 'InternalError' : undefined;
+    this.getClient().ping(error, function (err, pong, res) {
         if (err) return callback(err);
         p(JSON.stringify(pong, null, 4));
         callback();
@@ -117,6 +120,11 @@ Mo.prototype.do_ping.options = [
         names: ['help', 'h'],
         type: 'bool',
         help: 'Show this help.'
+    },
+    {
+        name: 'e',
+        type: 'bool',
+        help: 'Simulate an error.'
     }
 ];
 Mo.prototype.do_ping.help = (
@@ -129,9 +137,35 @@ Mo.prototype.do_ping.help = (
 );
 
 
+
 //---- mainline
 
 if (require.main === module) {
-    cmdln.main(Mo);
+    var cli = new Mo();
+    cli.main(process.argv, function (err) {
+        //if (err) {
+        //    console.error('%s%s: error%s: %s',
+        //        cli.name,
+        //        (err.subcmd ? ' ' + err.subcmd : ''),
+        //        (false && err.code ? format(' (%s)', err.code) : ''),
+        //        (process.env.DEBUG ? err.stack : err.message));
+        //    process.exit(err.exitStatus || 1);
+        //}
+        if (err) {
+            var subcmd = err.subcmd ? ' ' + err.subcmd : '';
+            if (err.body && err.body.code) {
+                console.error('%s%s: error (%s): %s', NAME, subcmd,
+                    err.body.code, err.message);
+            } else {
+                console.error('%s%s: error: %s', NAME, subcmd, err.message);
+            }
+            if (cli.opts.verbose && err.stack) {
+                console.error('\n' + err.stack);
+            }
+            process.exit(1);
+        } else {
+            process.exit(0);
+        }
+    });
 }
 
