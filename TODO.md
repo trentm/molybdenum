@@ -17,7 +17,7 @@
 - link a jira ticket name in commit message to the jira URL (i.e. autolinks)
 - search by jira ticket name
 - markc: blame
-- rm: opengrok integration. 
+- rm: opengrok integration.
   Or consider cscope (http://cscope.sourceforge.net/), "since cscope kind of
   understands JS and C, I wonder how bad it would be to read it's binary
   database format."
@@ -29,7 +29,7 @@
   Basically want to do equiv of `git log fa5ec06..HEAD` on a particular branch,
   where "fa5ec06" is the SHA from a previous release so can get a list of
   changes for this new release.
-  
+
     https://github.com/trentm/restdown/compare/60cda26242ac...master
 
 # high prio
@@ -54,9 +54,6 @@
   That diff is 25k lines! and blows Mo's mind. Guard on num lines (or time?)
   for lexing. Or is the prob rendering on the client side? Anyway, want a
   low-res fallback.
-- trent: https://mo.joyent.com/usb-headnode/commit/d18310e4a341847eee0f1a03fcf0ad2796c1eb0a
-  that commit was on release-20110714 branch, but it shows master. Can that
-  be fixed easily?
 - josh: https://gq2ukvaa.joyent.us/cloud-api/blob/master/tools/watch-amqp.js
   and selected Branch: release-20110512
   returns a 404, should perhaps be a "file does not exist" (still a 404?)
