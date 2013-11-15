@@ -137,6 +137,98 @@ Mo.prototype.do_ping.help = (
 );
 
 
+Mo.prototype.do_state = function (subcmd, opts, args, callback) {
+    if (opts.help) {
+        this.do_help('help', {}, [subcmd], callback);
+        return;
+    }
+    var error = opts.e ? 'InternalError' : undefined;
+    this.getClient().getState(error, function (err, state, res) {
+        if (err) return callback(err);
+        p(JSON.stringify(state, null, 4));
+        callback();
+    });
+};
+Mo.prototype.do_state.options = [
+    {
+        names: ['help', 'h'],
+        type: 'bool',
+        help: 'Show this help.'
+    }
+];
+Mo.prototype.do_state.help = (
+    'Dump internal server state (used for server dev/debugging).\n'
+    + '\n'
+    + 'Usage:\n'
+    + '     mo state [<options>]\n'
+    + '\n'
+    + '{{options}}'
+);
+
+
+Mo.prototype.do_repos = function (subcmd, opts, args, callback) {
+    if (opts.help) {
+        this.do_help('help', {}, [subcmd], callback);
+        return;
+    }
+    var error = opts.e ? 'InternalError' : undefined;
+    this.getClient().listRepos(error, function (err, repos, res) {
+        if (err) return callback(err);
+        p(JSON.stringify(repos, null, 4));
+        callback();
+    });
+};
+Mo.prototype.do_repos.options = [
+    {
+        names: ['help', 'h'],
+        type: 'bool',
+        help: 'Show this help.'
+    }
+];
+Mo.prototype.do_repos.help = (
+    'List repos in the site.\n'
+    + '\n'
+    + 'Usage:\n'
+    + '     mo repos [<options>]\n'
+    + '\n'
+    + '{{options}}'
+);
+
+
+Mo.prototype.do_fetch = function (subcmd, opts, args, callback) {
+    if (opts.help) {
+        this.do_help('help', {}, [subcmd], callback);
+        return;
+    }
+    p('XXX args', args)
+    assert.string(args[0], '<repo-name> argument');
+    assert.string(args[1], '<repo-url> argument');
+    var repoName = args[0];
+    var repoUrl = args[1];
+    this.getClient().fetchRepo(repoName, repoUrl, function (err, body, res) {
+        if (err) return callback(err);
+        //XXX non-json output
+        p(JSON.stringify(body, null, 4));
+        callback();
+    });
+};
+Mo.prototype.do_fetch.options = [
+    {
+        names: ['help', 'h'],
+        type: 'bool',
+        help: 'Show this help.'
+    },
+];
+Mo.prototype.do_fetch.help = (
+    'Tell the molybdenum server to fetch the given URL.\n'
+    + '\n'
+    + 'Usage:\n'
+    + '     mo fetch [<options>] <repo-name> <repo-url>\n'
+    + '\n'
+    + '{{options}}'
+);
+
+
 
 //---- mainline
 

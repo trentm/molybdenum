@@ -30,7 +30,9 @@ test:
 .PHONY: devrun
 devrun:
 	[[ -f etc/molybdenumd.config.json ]] || (echo "error: no etc/molybdenumd.config.json, copy it from etc/molybdenumd.config.json.in" && exit 1)
-	$(NODEDEV) ./bin/molybdenumd.js -f etc/molybdenumd.config.json | $(BUNYAN) -o short
+	$(NODEDEV) ./bin/molybdenumd.js -v -f etc/molybdenumd.config.json | $(BUNYAN) -o long
+
+CLEAN_FILES += node_modules
 
 
 include ./tools/mk/Makefile.deps

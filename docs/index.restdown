@@ -26,7 +26,7 @@ Gitosis setup.
 TODO: explain the object model
 
 
-# Mo Client
+# Mo API Client
 
 There is a node.js client included with the molybdenum repo. Basic usage:
 
@@ -39,12 +39,63 @@ There is a node.js client included with the molybdenum repo. Basic usage:
 
 For now, read "lib/client.js" for full usage details.
 
+# Mo CLI Client
 
-# API Summary
+There is a CLI `mo` for using the molybdenum API. Basic usage:
+
+    $ export PATH=.../molybdenum/bin:$PATH
+    $ export MO2_URL=http://localhost:8123
+    $ mo
+    ... help output ...
+    $ mo ping
+    {
+        "ping": "pong",
+        "version": "2.0.0",
+        "molybdenum": true,
+        "pid": 3235
+    }
+
+
+# Site Map
 
 ||**Name**||**Endpoint**||**Notes**||
 ||[ListRepos](#ListRepos)||GET /api/repos||List available repositories.||
+|| * * * || * * * || * * * ||
 ||[Ping](#Ping)||GET /api/ping||Ping if the server is up.||
+||[GetState](#GetState)||GET /api/state||Dump internal state of the server.||
+
+<!--
+    GET /api/repos (ListRepos)
+    POST /api/repos (FetchRepo)
+    GET /api/repos/:repo (GetRepo)
+    DELETE /api/repos/:repo (DeleteRepo)
+    GET /api/repos/:repo/commits/:ref (GetRepoCommitsRef)
+    GET /api/repos/:repo/commit/:id (GetRepoCommit)
+    GET /api/repos/:repo/refs (GetRepoRefs)
+    GET /api/repos/:repo/refs/:ref[/:path] (GetRepoObject)
+    GET /api/commit/:id (GetCommit)
+    GET /api/commits/:ref (GetCommitsRef)
+    POST /api/repos/:repo?action=tag (TagRepo)
+    POST /api/repos/:repo?action=untag (UntagRepo)
+    GET /api/tags (GetTags)
+    GET /api/tags/:tag (GetTaggedRepos)
+    GET /api/tags/:tag/commits/:ref (GetTaggedCommitsRef)
+
+    GET / (ViewRepos)
+    GET /commits (ViewCommits) ->
+    GET /commits/:ref (ViewCommitsRef)
+    GET /:repo (ViewRepo)
+    GET /:repo/tree/:ref/:path (ViewRepoTree)
+    GET /:repo/blob/:ref/:path (ViewRepoBlob)
+    GET /:repo/raw/:ref/:path (ViewRepoRaw)
+        TODO: ^^^ can the ':ref' on these three be any commitish? e.g. a sha. Josh wants that
+    GET /:repo/commit/:id (ViewRepoCommit)
+    GET /:repo/commits/:ref (ViewRepoCommits)
+    GET /tags (ViewTags)
+    GET /tags/:tag (ViewTaggedRepos)
+    GET /tags/:tag (ViewTaggedCommits) ->
+    GET /tags/:tag/commits/:ref (ViewTaggedCommitsRef)
+-->
 
 
 # API Errors
@@ -62,6 +113,7 @@ TODO: describe ListRepos
 
 ### Inputs
 
+None. TODO: search by name substring, tags
 ||**Field**||**Type**||**Description**||
 ||XXX||UUID||Only list images visible to this account. A user can only see: (a) active public images, (b) active private images for which they are listing in the ACL, and (c) their own images.||
 
@@ -77,7 +129,58 @@ See [API Errors](#api-errors) section above.
 
 ### Example
 
-TODO: example
+    {
+      "repositories": [
+        {
+          "name": "eol",
+          "url": "https://github.com/trentm/eol.git",
+          // TODO: internal, remove
+          "dir": "/data/molybdenum/repos/eol.git",
+          // Note: The following are internal. Will probably be removed.
+          "isCloned": true,
+          "isFetchPending": false,
+          "numActiveFetches": 0,
+          ...
+        }
+      ]
+    }
+
+## FetchRepo (POST /api/repos)
+
+Let the server know about a new push to a repo. The request body must be a
+JSON object of the following form (compatible with the Github URL
+post-receive hook JSON format <http://help.github.com/post-receive-hooks/>):
+
+    {
+      "repository": {
+        "url": $git_clone_url,
+        "name": $name
+      }
+    }
+
+
+## Example
+
+XXX actual example
+
+    $ echo '{
+        "repository": {
+            "url": "git@code.example.com:cool-product.git",
+            "name": "cool-product"
+        }
+    }' | curl localhost:8123/api/repos -X POST -H "Content-Type: application/json" -d @-
+
+    Status: 200
+    ...
+
+    {
+      "repository": {
+        "name": "cool-product",
+        "url": "git@code.example.com:cool-product.git",
+        "isCloned": false,
+        "isFetchPending": true
+      }
+    }
 
 
 ## Ping (GET /ping)
@@ -147,6 +250,21 @@ Simulating an error response:
       "code": "InternalError",
       "message": "boom"
     }
+
+
+## GetState (GET /api/state)
+
+Dump internal state of the server. This is an admin-only endpoint to assist
+with dev and debugging of the server.
+
+### Inputs
+
+None.
+
+### Returns
+
+||**Field**||**Description**||
+||TODO||TODO||
 
 
 # Server Configuration

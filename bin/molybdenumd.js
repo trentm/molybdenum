@@ -87,11 +87,11 @@ function main() {
     var logSrc = false;
     var logLevel = 'info';
     if (opts.verbose) {
+        logSrc = true;
         if (opts.verbose.length === 1) {
             logLevel = 'debug';
         } else if (opts.verbose.length > 1) {
             logLevel = 'trace';
-            logSrc = true;
         }
     }
     var serializers = objCopy(restify.bunyan.serializers);
@@ -127,17 +127,10 @@ function main() {
     gConfig = loadConfig({configPath: opts.config_file, log: log});
     if (!opts.verbose && gConfig.logLevel) {
         log.level(gConfig.logLevel);
-        if (log.level() <= bunyan.TRACE) {
+        if (log.level() <= bunyan.DEBUG) {
             log.src = true;
         }
     }
-    // Log config (but don't put passwords in the log file).
-    var censorKeys = {'password': '***', 'pass': '***'};
-    function censor(key, value) {
-        var censored = censorKeys[key];
-        return (censored === undefined ? value : censored);
-    }
-    log.info('config: %s', JSON.stringify(gConfig, censor, 2));
 
     // Start the app.
     async.series([

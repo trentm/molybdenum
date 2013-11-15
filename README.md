@@ -2,8 +2,8 @@
 # dir layout
 
     bin/
-        molybdenumd             # molybdenum daemon
-        mo
+        molybdenumd.js              # molybdenum server
+        mo                          # molybdenum cli
     etc/
         molybdenum.config.json
     lib/
@@ -11,7 +11,9 @@
 
 # TODO
 
-
+- FetchRepo
+- fill in Site Map in docs
+- add plan for versions/commit-range endpoints, changelog endpoints
 ...
 - full mo api
 - redis for caching, faster /commit/:sha redir
