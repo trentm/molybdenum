@@ -104,8 +104,11 @@ def genCommits(startRev, endRev):
         yield {"sha": sha, "message": message, "author": author}
 
 def genJiraIssues(commitInfo, jiraCfg):
-    jiraIssueRe = re.compile(r"\b((%s)-(\d+))\b"
-        % '|'.join(jiraCfg["jiraProjects"]))
+    if "jiraProjects" in jiraCfg:
+        jiraIssueRe = re.compile(r"\b((%s)-(\d+))\b"
+            % '|'.join(jiraCfg["jiraProjects"]))
+    else:
+        jiraIssueRe = re.compile(r'\b([A-Z]{2,}-\d+)\b')
     already = set()
     for match in jiraIssueRe.finditer(commitInfo["message"]):
         issue = match.group(1)
@@ -198,6 +201,7 @@ def main(argv=sys.argv):
                 "message": jiraCommentEscape(commitInfo["message"].rstrip()).decode('utf8'),
                 "branch": branch
             }
+            print "\t# %s" % jiraCfg['jiraUrl']
             for jira in genJiraIssues(commitInfo, jiraCfg):
                 print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
                 comment = TEMPLATE % data
@@ -207,7 +211,11 @@ def main(argv=sys.argv):
                 comment = comment.encode('ascii', 'replace')
                 if not cfg["dryRun"]:
                     authToken = getAuthToken(server, jiraCfg)
-                    server.jira1.addComment(authToken, jira, comment)
+                    try:
+                        server.jira1.addComment(authToken, jira, comment)
+                    except Exception, e:
+                        print "\t\twarning: could not add comment to %s: %s" \
+                            % (jira, e)
 
         #TODO: add a guard if too many?
 
