@@ -96,8 +96,15 @@ def genCommits(startRev, endRev):
         if not commitStr:
             continue
         sha, rest = commitStr.split(None, 1)
-        author = rest.split('\n', 1)[0].split(': ', 1)[1].split('<', 1)[0].strip()
         meta, message = re.compile(r'^    ', re.M).split(rest, 1)
+        metalines = meta.splitlines(False)
+        for line in meta.splitlines(False):
+            if line.startswith("Author:"):
+                author = line.split(': ', 1)[1].split('<', 1)[0].strip()
+                break
+        else:
+            author = "(unknown author)"
+        DEBUG = True
         if DEBUG:
             print "Found commit %s by %s: '%s...'" % (
                 sha, author, message[:20].replace('\n', ' '))
@@ -190,6 +197,7 @@ def main(argv=sys.argv):
                         % (checkPath, pat)
                     return
 
+        print "\t# %s" % jiraCfg['jiraUrl']
         server = xmlrpclib.ServerProxy(jiraCfg["jiraUrl"] + "/rpc/xmlrpc")
         for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
             sha = commitInfo["sha"][:7]
@@ -201,7 +209,6 @@ def main(argv=sys.argv):
                 "message": jiraCommentEscape(commitInfo["message"].rstrip()).decode('utf8'),
                 "branch": branch
             }
-            print "\t# %s" % jiraCfg['jiraUrl']
             for jira in genJiraIssues(commitInfo, jiraCfg):
                 print "\t> %s (commit %s, branch %s)" % (jira, sha, branch)
                 comment = TEMPLATE % data
