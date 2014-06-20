@@ -104,7 +104,6 @@ def genCommits(startRev, endRev):
                 break
         else:
             author = "(unknown author)"
-        DEBUG = True
         if DEBUG:
             print "Found commit %s by %s: '%s...'" % (
                 sha, author, message[:20].replace('\n', ' '))
