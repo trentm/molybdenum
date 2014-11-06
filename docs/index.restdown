@@ -266,11 +266,12 @@ a regular git post-receive hook:
     .../foo-post-fetch-hook OLDREV NEWREV REFNAME
 
 with the addition that the "MOLYBDENUM_CONFIG" and "CONFIG" envvars are
-set to the full path to the Molybdenum ini config file. This allows a
-post-fetch script to get configuration info. For example:
+set to the full path to the Molybdenum config file and the cwd is the fetched
+repo. This allows a post-fetch script to get configuration info. For example:
 
-    CONFIG=/home/mo/config/molybdenum.ini \
-        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.ini \
+    cd /home/mo/data/molybdenum/repos/foo.git && \
+        CONFIG=/home/mo/config/molybdenum.json \
+        MOLYBDENUM_CONFIG=/home/mo/config/molybdenum.json \
         /home/mo/hooks/my-custom-post-fetch-hook ea8d8c5 8d83628 refs/heads/master
 
 By convention a post-fetch hook needing config info should use a

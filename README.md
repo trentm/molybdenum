@@ -60,6 +60,8 @@ Molybdenum.
 
 # Molybdenum post-fetch hooks
 
+(TODO: this is slightly out of date. See the equiv section in docs/index.restdown.)
+
 The "postFetchHooks" (global) config var is a comma-separate list of
 post-fetch hooks. These are either a hook name (for built-in hooks that
 ship with Molybdenum) or the full path to a separately installed post-fetch
