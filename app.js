@@ -207,14 +207,7 @@ function createApp(opts, config) {
         return;
       }
       repoName = data.repository.name;
-      if (data.repository["private"]) {
-        // For a private github URL we can't naively tack '.git'
-        // on to the repo URL. We need the "git:" protocol URL.
-        assert.ok(data.repository.url.indexOf("github.com") != -1)
-        repoUrl = "git@github.com:"+data.repository.owner.name+"/"+data.repository.name+".git";
-      } else {
-        repoUrl = data.repository.url + ".git";
-      }
+      repoUrl = data.repository.ssh_url;
     } else {
       data = req.body;
       if (!data.repository || !data.repository.url) {
