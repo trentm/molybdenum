@@ -21,6 +21,7 @@ import re
 import json
 import codecs
 from fnmatch import fnmatch
+from urlparse import urlparse
 
 # Ignore xmllib deprecation warning in xmlrpclib usage in Python 2.6.
 import warnings
@@ -35,7 +36,7 @@ warnings.simplefilter("ignore")
 # space doesn't confuse Jira, so all good.
 TEMPLATE = u"""
 {panel:borderColor=#ccc|borderStyle=solid|bgColor=#d3e1fe}
-*[%(repo)s commit %(sha)s|%(moUrl)s/%(repo)s/commit/%(sha)s ]* *(**[branch %(branch)s|%(moUrl)s/%(repo)s/commits/%(branch)s ]**, by %(author)s)*
+*[%(repo)s commit %(sha)s|%(repoBrowseUrl)s/commit/%(sha)s ]* *(**[branch %(branch)s|%(repoBrowseUrl)s/commits/%(branch)s ]**, by %(author)s)*
 
 %(message)s
 {panel}
@@ -176,6 +177,23 @@ def main(argv=sys.argv):
         repo = repo[:-len(".git")]
     branch = refname.split('/')[-1]
 
+    # If this repo's origin is on GitHub, then use the GH repo browse URL
+    # instead of Molybdenum's own.
+    ghRepoBrowseUrl = None
+    stdout, stderr = run([GIT, "remote", "-v"])
+    for line in stdout.splitlines(False):
+        remoteName, remoteUrl = line.split()[:2]
+        if remoteName == "origin":
+            if remoteUrl.startswith("git@github.com:"):
+                # E.g. git@github.com:joyent/sdc-headnode.git
+                ghRepo = os.path.splitext(remoteUrl.split(':', 1)[1])[0]
+                ghRepoBrowseUrl = "https://github.com/" + ghRepo
+            elif "//github.com/" in remoteUrl:
+                # E.g. https://github.com/trevoro/node-named.git
+                ghRepo = os.path.splitext(urlparse(remoteUrl).path[0])[0]
+                ghRepoBrowseUrl = "https://github.com/" + ghRepo
+            break
+
     for jiraCfg in cfg.get("jiras", []):
         whitelist = jiraCfg.get("branchWhitelist") or []
         blacklist = jiraCfg.get("branchBlacklist") or []
@@ -197,11 +215,12 @@ def main(argv=sys.argv):
                     return
 
         print "\t# %s" % jiraCfg['jiraUrl']
+        repoBrowseUrl = ghRepoBrowseUrl or "%s/%s" % (jiraCfg["moUrl"], repo)
         server = xmlrpclib.ServerProxy(jiraCfg["jiraUrl"] + "/rpc/xmlrpc")
         for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
             sha = commitInfo["sha"][:7]
             data = {
-                "moUrl": jiraCfg["moUrl"],
+                "repoBrowseUrl": repoBrowseUrl,
                 "repo": repo,
                 "sha": sha,
                 "author": commitInfo["author"].decode('utf8'),
