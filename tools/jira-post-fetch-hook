@@ -198,6 +198,7 @@ def main(argv=sys.argv):
             break
 
     for jiraCfg in cfg.get("jiras", []):
+        print "\t# %s" % jiraCfg['jiraUrl']
         whitelist = jiraCfg.get("branchWhitelist") or []
         blacklist = jiraCfg.get("branchBlacklist") or []
         if whitelist or blacklist:
@@ -210,14 +211,13 @@ def main(argv=sys.argv):
                 else:
                     print "\t> Skip repo/branch '%s' (doesn't match whitelist)" \
                         % checkPath
-                    return
+                    continue
             for pat in blacklist:
                 if fnmatch(checkPath, pat):
                     print "\t> Skip repo/branch '%s' (matches blacklist '%s')" \
                         % (checkPath, pat)
-                    return
+                    continue
 
-        print "\t# %s" % jiraCfg['jiraUrl']
         repoBrowseUrl = ghRepoBrowseUrl or "%s/%s" % (jiraCfg["moUrl"], repo)
         server = xmlrpclib.ServerProxy(jiraCfg["jiraUrl"] + "/rpc/xmlrpc")
         for commitInfo in reversed([c for c in genCommits(oldrev, newrev)]):
