@@ -61,7 +61,7 @@ def printError(errmsg):
     lines = [
         "* * *",
         "* cd %s && MOLYBDENUM_CONFIG=%s %s %s" % (
-            os.getcwd(), os.environ["MOLYBDENUM_CONFIG"], 
+            os.getcwd(), os.environ["MOLYBDENUM_CONFIG"],
             sys.executable, ' '.join(sys.argv)),
         "*"
     ]
@@ -175,7 +175,10 @@ def main(argv=sys.argv):
     repo = os.path.basename(os.getcwd())
     if repo.endswith(".git"):
         repo = repo[:-len(".git")]
-    branch = refname.split('/')[-1]
+    # refname examples:
+    #   refs/heads/joyent/mako-prime
+    #   refs/heads/master
+    branch = refname.split('/', 2)[-1]
 
     # If this repo's origin is on GitHub, then use the GH repo browse URL
     # instead of Molybdenum's own.
